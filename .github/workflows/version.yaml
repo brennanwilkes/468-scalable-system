@@ -21,7 +21,7 @@ jobs:
         run: echo "::set-output name=next_tag::$(echo ${{ steps.get_prev_tag.outputs.prev_tag }} | awk -F '.' '{print $1"."$2"."$3+1}')"
 
       - name: Create Tag
-        uses: anothrNick/github-tag-action@v1.14.1
+        uses: anothrNick/github-tag-action@1.61.0
         with:
           tag: ${{ steps.get_next_tag.outputs.next_tag }}
           message: Auto-tagged new commit
