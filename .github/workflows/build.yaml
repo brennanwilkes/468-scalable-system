@@ -34,10 +34,42 @@ jobs:
             transaction-server: transaction-server
             database: database
 
-  build-and-push:
+  test:
     runs-on: ubuntu-latest
     if: ${{ needs.changes.outputs.packages != '[]' }}
     needs: changes
+    strategy:
+      matrix:
+        image: ${{ fromJSON(needs.changes.outputs.packages) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Node.js
+        if: ${{ matrix.image == 'transaction-server' }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - uses: pnpm/action-setup@v2
+        if: ${{ matrix.image == 'transaction-server' }}
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 7
+
+      - name: Run tests
+        if: ${{ matrix.image == 'transaction-server' }}
+        run: |
+          cd ${{ matrix.image }}
+          pnpm install
+          pnpm run test
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    if: ${{ needs.changes.outputs.packages != '[]' }}
+    needs: [changes, test]
     strategy:
       matrix:
         image: ${{ fromJSON(needs.changes.outputs.packages) }}
