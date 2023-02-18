@@ -1,0 +1,27 @@
+name: Auto Tag Commits
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  auto_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Get Previous Tag
+        id: get_prev_tag
+        run: echo "::set-output name=prev_tag::$(git describe --abbrev=0 --tags)"
+
+      - name: Get Next Tag
+        id: get_next_tag
+        run: echo "::set-output name=next_tag::$(echo ${{ steps.get_prev_tag.outputs.prev_tag }} | awk -F '.' '{print $1"."$2"."$3+1}')"
+
+      - name: Create Tag
+        uses: anothrNick/github-tag-action@v1.14.1
+        with:
+          tag: ${{ steps.get_next_tag.outputs.next_tag }}
+          message: Auto-tagged new commit
