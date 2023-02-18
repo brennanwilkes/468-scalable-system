@@ -26,5 +26,7 @@ jobs:
         run: |
           NEXT_TAG=${{ steps.get_next_tag.outputs.next_tag }}
           COMMIT_MSG="Auto-tagged new version ${NEXT_TAG}"
+          git config --global user.name "$(git log -n 1 --pretty=format:%an)"
+          git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
           git tag $NEXT_TAG -a -m "$COMMIT_MSG"
           git push origin "$NEXT_TAG"
