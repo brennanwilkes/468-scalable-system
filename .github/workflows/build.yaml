@@ -28,11 +28,11 @@ jobs:
         id: filter
         with:
           filters: |
-            webserver: webserver
-            frontend: frontend
-            caching: caching
-            transaction-server: transaction-server
-            database: database
+            webserver: webserver/**
+            frontend: frontend/**
+            caching: caching/**
+            transaction-server: transaction-server/**
+            database: database/**
 
   test:
     runs-on: ubuntu-latest
