@@ -23,6 +23,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push image
+        if: github.event_name == 'push' && github.event.head_commit.modified | contains(paths('./' + matrix.image))
         uses: docker/build-push-action@v2
         with:
           context: ./${{ matrix.image }}

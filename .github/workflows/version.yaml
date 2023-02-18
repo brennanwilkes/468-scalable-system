@@ -1,4 +1,4 @@
-name: Auto Tag Commits
+name: Auto Tag Commits 🏷️
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  auto_tag:
+  auto-tag:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,7 +21,8 @@ jobs:
         run: echo "::set-output name=next_tag::$(echo ${{ steps.get_prev_tag.outputs.prev_tag }} | awk -F '.' '{print $1"."$2"."$3+1}')"
 
       - name: Create Tag
-        uses: anothrNick/github-tag-action@1.61.0
-        with:
-          tag: ${{ steps.get_next_tag.outputs.next_tag }}
-          message: Auto-tagged new commit
+        run: |
+          NEXT_TAG=${{ steps.get_next_tag.outputs.next_tag }}
+          COMMIT_MSG="Auto-tagged new version ${NEXT_TAG}"
+          git tag $NEXT_TAG -a -m "$COMMIT_MSG"
+          git push origin "$NEXT_TAG"
