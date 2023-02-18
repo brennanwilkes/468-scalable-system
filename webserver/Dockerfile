@@ -31,7 +31,7 @@ WORKDIR /app
 
 # Copy the built code from the previous stage to the working directory
 COPY --from=builder /app/dist /app
-COPY --from=builder /app/.npmrc /app/package.json /app/pnpm-lock.yaml ./
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./
 

@@ -27,4 +27,4 @@ jobs:
         with:
           context: ./${{ matrix.image }}
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/day-trading-${{ matrix.image }}:latest
