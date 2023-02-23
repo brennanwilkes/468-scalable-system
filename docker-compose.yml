@@ -1,0 +1,54 @@
+version: '3.3'
+
+services:
+  redis:
+    build:
+      context: ./caching
+      dockerfile: Dockerfile
+    # ports:
+    #   - "6379:6379"
+    networks:
+      - mynetwork
+
+  mongodb:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    # ports:
+    #   - "27017:27017"
+    # volumes:
+    #   - ./mongod-keyfile-dev:/etc/mongod-keyfile
+
+    networks:
+      - mynetwork
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    networks:
+      - mynetwork
+
+  transaction-server:
+    build:
+      context: ./transaction-server
+      dockerfile: Dockerfile
+    # ports:
+    #   - "3001:3001"
+    networks:
+      - mynetwork
+
+  webserver:
+    build:
+      context: ./webserver
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
