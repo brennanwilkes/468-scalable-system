@@ -3,10 +3,12 @@ import {Command } from 'commander'
 import * as fs from 'fs'
 import path from 'path';
 import { createInterface } from 'readline';
+import axios from 'axios';
 
 
 const program = new Command();
 
+const url = 'localhost:3001';
 console.log(figlet.textSync("Transaction Server CLI"));
 
 program
@@ -52,52 +54,127 @@ async function parseCommand(command: string) {
     args.splice(0, 1);
     switch(transactionCommand){
         case 'ADD': 
-            //handle add
+            const addBody = {
+                userId:  args[0],
+                amount:  parseFloat(args[1]),
+            }
+            const addResponse = await axios.post(`http://${url}/api/ADD`, addBody);
+            console.log(addResponse.data);
             return;
         case 'QUOTE':
-            //handle quote
+            const quoteResponse = await axios.get(`http://${url}/api/QUOTE?userId=${args[0]}&stockSymbol=${args[1]}`);
+            console.log(quoteResponse.data);
             return;
         case 'BUY':
-            //handle buy
+            const buyBody = {
+                userId:  args[0],
+                stockSymbol: args[1],
+                amount:  parseFloat(args[2]),
+            }
+            const buyResponse = await axios.post(`http://${url}/api/BUY`, buyBody);
+            console.log(buyResponse.data);
             return;
         case 'COMMIT_BUY':
-            //handle commit_buy
+            const commitBuyBody = {
+                userId:  args[0],
+            }
+            const commitBuyResponse = await axios.post(`http://${url}/api/COMMIT_BUY`, commitBuyBody);
+            console.log(commitBuyResponse.data);
             return;
         case 'CANCEL_BUY':
-            //handle cancel_buy
+            const cancelBuyBody = {
+                userId:  args[0],
+            }
+            const cancelBuyResponse = await axios.post(`http://${url}/api/CANCEL_BUY`, cancelBuyBody);
+            console.log(cancelBuyResponse.data);
             return;
         case 'SELL':
-            //handle sell
+            const sellBody = {
+                userId:  args[0],
+                stockSymbol: args[1],
+                amount:  parseFloat(args[2]),
+            }
+            const sellResponse = await axios.post(`http://${url}/api/SELL`, sellBody);
+            console.log(sellResponse.data);
             return;
         case 'COMMIT_SELL':
-            //handle commit_sell
+            const commitSellBody = {
+                userId:  args[0],
+            }
+            const commitSellResponse = await axios.post(`http://${url}/api/COMMIT_SELL`, commitSellBody);
+            console.log(commitSellResponse.data);
             return;
         case 'CANCEL_SELL':
-            //handle cancel_sell
+            const cancelSellBody = {
+                userId:  args[0],
+            }
+            const cancelSellResponse = await axios.post(`http://${url}/api/CANCEL_SELL`, cancelSellBody);
+            console.log(cancelSellResponse.data);
             return;
         case 'SET_BUY_AMOUNT':
-            //handle set_buy_amount
+            const setBuyAmountBody = {
+                userId:  args[0],
+                stockSymbol: args[1],
+                amount:  parseFloat(args[2]),
+            }
+            const setBuyAmountResponse = await axios.post(`http://${url}/api/SET_BUY_AMOUNT`, setBuyAmountBody);
+            console.log(setBuyAmountResponse.data);
             return;
         case 'CANCEL_SET_BUY':
-            //handle cancel_set_buy
+            const cancelSetBuyBody = {
+                userId:  args[0],
+                stockSymbol: args[1],
+            }
+            const cancelSetBuyResponse = await axios.post(`http://${url}/api/CANCEL_SET_BUY`, cancelSetBuyBody);
+            console.log(cancelSetBuyResponse.data);
             return;
         case 'SET_BUY_TRIGGER':
-            //handle set_buy_trigger
+            const setBuyTriggerBody = {
+                userId:  args[0],
+                stockSymbol: args[1],
+                amount:  parseFloat(args[2]),
+            }
+            const setBuyTriggerResponse = await axios.post(`http://${url}/api/SET_BUY_TRIGGER`, setBuyTriggerBody);
+            console.log(setBuyTriggerResponse.data);
             return;
         case 'SET_SELL_AMOUNT':
-            //handle set_sell_amount
+            const setSellAmountBody = {
+                userId:  args[0],
+                stockSymbol: args[1],
+                amount:  parseFloat(args[2]),
+            }
+            const setSellAmountResponse = await axios.post(`http://${url}/api/SET_SELL_AMOUNT`, setSellAmountBody);
+            console.log(setSellAmountResponse.data);
             return;
         case 'SET_SELL_TRIGGER':
-            //handle set_sell_trigger
+            const setSellTriggerBody = {
+                userId:  args[0],
+                stockSymbol: args[1],
+                amount:  parseFloat(args[2]),
+            }
+            const setSellTriggerResponse = await axios.post(`http://${url}/api/SET_SELL_TRIGGER`, setSellTriggerBody);
+            console.log(setSellTriggerResponse.data);
             return;
         case 'CANCEL_SET_SELL':
-            //handle cancel_set_sell
+            const cancelSetSellBody = {
+                userId:  args[0],
+                stockSymbol: args[1],
+            }
+            const cancelSetSellResponse = await axios.post(`http://${url}/api/CANCEL_SET_SELL`, cancelSetSellBody);
+            console.log(cancelSetSellResponse.data);
             return;
         case 'DUMPLOG':
-            //handle dumplog
+            let dumplogResponse;
+            if(args.length > 1) {
+                dumplogResponse = await axios.get(`http://${url}/api/DUMPLOG?userId=${args[0]}&fileName=${args[1]}`);
+            } else {
+                dumplogResponse = await axios.get(`http://${url}/api/DUMPLOG?fileName=${args[0]}`);
+            }
+            console.log(dumplogResponse.data);
             return;
         case 'DISPLAY_SUMMARY':
-            //handle display_summary
+            const displaySummaryResponse = await axios.get(`http://${url}/api/DISPLAY_SUMMARY?userId=${args[0]}`);
+            console.log(displaySummaryResponse.data);
             return;
     }
         

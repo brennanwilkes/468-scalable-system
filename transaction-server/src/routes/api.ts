@@ -1,7 +1,7 @@
 import express, { Request, Response, Router } from 'express';
 import { AddType, BuyType, CancelBuyType, CancelSellType, CancelSetBuyType, CancelSetSellType, CommitBuyType, CommitSellType, DisplaySummaryType, DumplogType, QuoteType, SellType, SetBuyAmountType, SetBuyTriggerType, SetSellAmountType, SetSellTriggerType } from '../types';
 import { apiMiddleware } from '../middleware/api';
-import { getQuote } from 'src/functions/getQuote';
+import { getQuote } from '../functions/getQuote';
 
 export const apiRouter: Router = express.Router();
 
@@ -34,6 +34,7 @@ apiRouter.post('/BUY', (req: Request, res: Response): void => {
   const data: BuyType = req.body;
   //Account must have enough money
   //Save transaction temporarily in mongo, do not execute. 
+  console.log(data);
   res.json({response: 'Hello, World!'});
 });
 
