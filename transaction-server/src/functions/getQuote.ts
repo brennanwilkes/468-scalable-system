@@ -3,6 +3,6 @@
  * cache before calling the quote server. 
  * @param stockSymbol Symbol of the Stock to get a quote of
  */
-export async function getQuote(stockSymbol: string): Promise<number> {
-    return 0;
+export async function getQuote(stockSymbol: string, byPassRedis?: boolean): Promise<{price: number; cryptokey: string}> {
+    return {price: 1,  cryptokey: "testCryptoKey"};
 }
