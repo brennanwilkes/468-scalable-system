@@ -2,26 +2,64 @@ import express, { Request, Response, Router } from 'express';
 import { AddType, BuyType, CancelBuyType, CancelSellType, CancelSetBuyType, CancelSetSellType, CommitBuyType, CommitSellType, DisplaySummaryType, DumplogType, QuoteType, SellType, SetBuyAmountType, SetBuyTriggerType, SetSellAmountType, SetSellTriggerType } from '../types';
 import { apiMiddleware } from '../middleware/api';
 import { getQuote } from '../functions/getQuote';
+import { MongoClient } from 'mongodb';
+import { UserMongo } from '../mongoTypes';
+
+require('dotenv').config();
 
 export const apiRouter: Router = express.Router();
 
+const uri = `mongodb://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_URL}:${process.env.MONGO_PORT}/?authMechanism=DEFAULT`;
+
+const client = new MongoClient(uri);
+
 apiRouter.use(apiMiddleware);
 
-apiRouter.get('/', (req: Request, res: Response): void => {
+apiRouter.get('/', async (req: Request, res: Response): Promise<void> => {
+  
+
+  console.log(await client.db('Transaction-Server').admin().listDatabases())
+  await client.close()
   res.json({response: 'Hello, World!'});
 });
 
 //Commands in order of provided list https://www.ece.uvic.ca/~seng462/ProjectWebSite/Commands.html
 
-apiRouter.post('/ADD', (req: Request, res: Response): void => {
+apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
   const data: AddType = req.body;
 
-  //TODO: Get user account from mongo
-  const account: any = 1
-  //TODO: Add amount (mongo)
-
-  //TODO: Return amount
-  res.json({response: 'Hello, World!'});
+  await client.connect();
+  const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
+  if(user == null) {
+    //User missing, create one -- TODO: Reevalutate this, how are users created? - James 24/02/23
+    const newUser: UserMongo = {
+      username: data.userId,
+      account_balance: data.amount,
+      stocks_owned: [],
+      account_balance_reserves: [],
+      stocks_owned_reserves: [],
+      buy_triggers: [],
+      sell_triggers: [],
+      created: Date.now(),
+      updated: Date.now(),
+      credential: {
+        username: 'admin',
+        hash_password: 'temp',
+        created: Date.now(),
+        updated: Date.now(),
+      },
+      transactions: [],
+    }
+    console.log('Inserting User');
+    await client.db("Transaction-Server").collection('Users').insertOne(newUser);
+    res.json({response: `Account Created and Amount added to Account. Account holds ${newUser.account_balance}`});
+  } else {
+    user.account_balance += data.amount;
+    user.updated = Date.now();
+    await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+    res.json({response: `Amount added to Account. Account now holds ${user.account_balance}`});
+  }
+  
 });
 
 apiRouter.get('/QUOTE', async (req: Request, res: Response): Promise<void> => {
