@@ -403,7 +403,7 @@ apiRouter.post('/SET_BUY_AMOUNT', (req: Request, res: Response): void => {
   // user.updated = Date.now();
   // await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
   // res.json({success: true, response: `Stock purchased. You now own ${stockAmount} shares of ${transaction.stock_name} stock`});
-  // res.json({response: 'Hello, World!'});
+  res.json({response: 'Hello, World!'});
 })
 
 apiRouter.post('/CANCEL_SET_BUY', (req: Request, res: Response): void => {

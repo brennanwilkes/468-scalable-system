@@ -49,6 +49,7 @@ async function handleFile(filePath: string) {
 }
 
 async function parseCommand(command: string) {
+    console.log(command);
     let args = command.split(',');
     const transactionCommand = args[0];
     args.splice(0, 1);
