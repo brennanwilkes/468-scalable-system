@@ -39,23 +39,23 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install Node.js
-        if: ${{ matrix.image == 'transaction-server' }}
+        if: ${{ matrix.image == 'transaction-server' }} #TODO: Add other images with tests
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
       - uses: pnpm/action-setup@v2
-        if: ${{ matrix.image == 'transaction-server' }}
+        if: ${{ matrix.image == 'transaction-server' }} #TODO: Add other images with tests
         name: Install pnpm
         id: pnpm-install
         with:
           version: 7
 
       - name: Run tests
-        if: ${{ matrix.image == 'transaction-server' }}
+        if: ${{ matrix.image == 'transaction-server' }} #TODO: Add other images with tests
         run: |
           cd ${{ matrix.image }}
-          pnpm install
+          pnpm install --prefer-frozen-lockfile || pnpm install --no-frozen-lockfile
           pnpm run test
 
   build-and-push:
