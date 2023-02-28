@@ -15,11 +15,9 @@ const uri = `mongodb://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWOR
 const client = new MongoClient(uri);
 client.connect();
 
-apiRouter.use(apiMiddleware);
+apiRouter.use(apiMiddleware);\chat\753759a1-e2a2-4533-bcd3-241ad751ec8d
 
 apiRouter.get('/', async (req: Request, res: Response): Promise<void> => {
-  
-
   console.log(await client.db('Transaction-Server').admin().listDatabases())
   await client.close()
   res.json({response: 'Hello, World!'});
@@ -66,6 +64,56 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
   }
   
 });
+
+//Helper functions
+type BuyTrigger = {
+  id: string;
+  user_id: string;
+  stock_id: string;
+  reserved_balance: number;
+};
+
+type User = {
+  id: string;
+  account: Account;
+};
+
+type Account = {
+  balance: number;
+};
+
+type Database = {
+  buy_triggers: BuyTrigger[];
+  users: User[];
+};
+
+type CancelSetBuyType = {
+  userId: string;
+  stockId: string; // Add stockId property
+};
+
+const db: Database = {
+  buy_triggers: [],
+  users: []
+};
+
+function findBuyTrigger(userId: string, stockId: string): BuyTrigger | null {
+  const buyTriggers = db.buy_triggers.filter(
+    (bt) => bt.user_id === userId && bt.stock_id === stockId
+  );
+  return buyTriggers.length > 0 ? buyTriggers[0] : null;
+}
+
+function removeBuyTrigger(buyTriggerId: string): void {
+  db.buy_triggers = db.buy_triggers.filter((bt) => bt.id !== buyTriggerId);
+}
+
+function getAccountBalance(userId: string): Account | null {
+  const user = db.users.find((u) => u.id === userId);
+  return user ? user.account : null;
+}
+
+
 
 apiRouter.get('/QUOTE', async (req: Request, res: Response): Promise<void> => {
   const data: QuoteType = req.query as any;
@@ -408,11 +456,23 @@ apiRouter.post('/SET_BUY_AMOUNT', (req: Request, res: Response): void => {
 
 apiRouter.post('/CANCEL_SET_BUY', (req: Request, res: Response): void => {
   const data: CancelSetBuyType = req.body;
-  //Must havea set_buy for stock
-  // Put reserves back into account
-  // Buy trigger cancelled
-  res.json({response: 'Hello, World!'});
-})
+  const buyTrigger = findBuyTrigger(data.userId, data.stockId);
+  
+  if (!buyTrigger) {
+    return res.status(400).json({ error: 'No set_buy found for the user and stock.' });
+  }
+
+  const account = getAccountBalance(data.userId);
+  if (!account) {
+    return res.status(400).json({ error: 'No account found for the user.' });
+  }
+
+  account.balance += buyTrigger.reserved_balance;
+  removeBuyTrigger(buyTrigger.id);
+
+  res.json({ response: 'Cancel set_buy successful.' });
+});
+
 
 apiRouter.post('/SET_BUY_TRIGGER', (req: Request, res: Response): void => {
   const data: SetBuyTriggerType = req.body;
