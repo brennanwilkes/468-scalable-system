@@ -1,0 +1,43 @@
+version: '3.3'
+
+services:
+  redis:
+    image: brennanwilkes/day-trading-caching
+    # ports:
+    #   - "6379:6379"
+    networks:
+      - mynetwork
+
+  mongodb:
+    image: brennanwilkes/day-trading-database
+    # ports:
+    #   - "27017:27017"
+    # volumes:
+    #   - ./mongod-keyfile-dev:/etc/mongod-keyfile
+    networks:
+      - mynetwork
+
+  frontend:
+    image: brennanwilkes/day-trading-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - mynetwork
+
+  transaction-server:
+    image: brennanwilkes/day-trading-transaction-server
+    # ports:
+    #   - "3001:3001"
+    networks:
+      - mynetwork
+
+  webserver:
+    image: brennanwilkes/day-trading-webserver
+    ports:
+      - "3001:3000"
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
