@@ -113,6 +113,13 @@ function getAccountBalance(userId: string): Account | null {
   return user ? user.account : null;
 }
 
+interface SetBuyTriggerType {
+  userId: string;
+  stock_id: string;
+  buy_amount: number;
+}
+
+
 
 
 apiRouter.get('/QUOTE', async (req: Request, res: Response): Promise<void> => {
@@ -469,17 +476,35 @@ apiRouter.post('/CANCEL_SET_BUY', (req: Request, res: Response): void => {
 
   account.balance += buyTrigger.reserved_balance;
   removeBuyTrigger(buyTrigger.id);
-
   res.json({ response: 'Cancel set_buy successful.' });
 });
 
 
 apiRouter.post('/SET_BUY_TRIGGER', (req: Request, res: Response): void => {
   const data: SetBuyTriggerType = req.body;
-  // Specify buy_amount first
+
+  // Check if user has enough balance to create a trigger
+  const account = getAccountBalance(data.userId);
+  if (!account || account.balance < data.buy_amount) {
+    return res.status(400).json({ error: 'Insufficient account balance.' });
+  }
+
+  // Create buy trigger
+  const buyTrigger = {
+    id: uuidv4(),
+    user_id: data.userId,
+    stock_id: data.stockId,
+    reserved_balance: data.buy_amount
+  };
+
   // Update db
-  res.json({response: 'Hello, World!'});
-})
+  db.buy_triggers.push(buyTrigger);
+  account.balance -= data.buy_amount;
+
+  res.json({ response: 'Set buy_trigger successful.' });
+});
+
+
 
 apiRouter.post('/SET_SELL_AMOUNT', (req: Request, res: Response): void => {
   const data: SetSellAmountType = req.body;
