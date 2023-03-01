@@ -427,15 +427,32 @@ apiRouter.post('/CANCEL_SET_BUY', async (req: Request, res: Response): Promise<v
 
 apiRouter.post('/SET_BUY_TRIGGER', async (req: Request, res: Response): Promise<void> => {
   const data: SetBuyTriggerType = req.body;
-  await logUserCommand(client, 'SET_BUY_TRIGGER', data.userId, {funds: data.amount, stockSymbol: data.stockSymbol});
-  // Specify buy_amount first
-  // Update db
-  res.json({response: 'Hello, World!'});
-})
 
-apiRouter.post('/SET_SELL_AMOUNT', async (req: Request, res: Response): Promise<void> => {
+  // Check if user has enough balance to create a trigger
+  const account = getAccountBalance(data.userId);
+  if (!account || account.balance < data.buy_amount) {
+    return res.status(400).json({ error: 'Insufficient account balance.' });
+  }
+
+  // Create buy trigger
+  const buyTrigger = {
+    id: uuidv4(),
+    user_id: data.userId,
+    stock_id: data.stockId,
+    reserved_balance: data.buy_amount
+  };
+
+  // Update db
+  db.buy_triggers.push(buyTrigger);
+  account.balance -= data.buy_amount;
+
+  res.json({ response: 'Set buy_trigger successful.' });
+});
+
+
+
+apiRouter.post('/SET_SELL_AMOUNT', (req: Request, res: Response): void => {
   const data: SetSellAmountType = req.body;
-  await logUserCommand(client, 'SET_SELL_AMOUNT', data.userId, {funds: data.amount, stockSymbol: data.stockSymbol});
   //Stock of user must be hihger than sell amount
   //Creates a reserve
   // User stock removed to that reserve
