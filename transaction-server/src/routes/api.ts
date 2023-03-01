@@ -482,38 +482,73 @@ apiRouter.post('/CANCEL_SET_BUY', (req: Request, res: Response): void => {
 
 apiRouter.post('/SET_BUY_TRIGGER', (req: Request, res: Response): void => {
   const data: SetBuyTriggerType = req.body;
-
-  // Check if user has enough balance to create a trigger
+  
   const account = getAccountBalance(data.userId);
-  if (!account || account.balance < data.buy_amount) {
-    return res.status(400).json({ error: 'Insufficient account balance.' });
+  if (!account) {
+    return res.status(400).json({ error: 'No account found for the user.' });
   }
 
-  // Create buy trigger
-  const buyTrigger = {
+  const currentStockPrice = getCurrentStockPrice(data.stock_id);
+  if (!currentStockPrice) {
+    return res.status(400).json({ error: 'Invalid stock_id.' });
+  }
+
+  const buyAmount = data.buy_amount;
+  const totalBuyCost = currentStockPrice * buyAmount;
+
+  if (account.balance < totalBuyCost) {
+    return res.status(400).json({ error: 'Insufficient balance.' });
+  }
+
+  const existingTrigger = findBuyTrigger(data.userId, data.stock_id);
+  if (existingTrigger) {
+    removeBuyTrigger(existingTrigger.id);
+  }
+
+  const trigger: BuyTrigger = {
     id: uuidv4(),
     user_id: data.userId,
-    stock_id: data.stockId,
-    reserved_balance: data.buy_amount
+    stock_id: data.stock_id,
+    reserved_balance: totalBuyCost
   };
+  db.buy_triggers.push(trigger);
 
-  // Update db
-  db.buy_triggers.push(buyTrigger);
-  account.balance -= data.buy_amount;
-
-  res.json({ response: 'Set buy_trigger successful.' });
+  res.json({ response: 'Set buy trigger successful.' });
 });
+
 
 
 
 apiRouter.post('/SET_SELL_AMOUNT', (req: Request, res: Response): void => {
   const data: SetSellAmountType = req.body;
-  //Stock of user must be hihger than sell amount
-  //Creates a reserve
-  // User stock removed to that reserve
-  // reserve is emptied at sell time, cash added to account
-  res.json({response: 'Hello, World!'});
-})
+  const user = getUserById(data.userId);
+  if (!user) {
+    return res.status(400).json({ error: 'User not found.' });
+  }
+  const account = getAccountBalance(user.id);
+  if (!account) {
+    return res.status(400).json({ error: 'Account not found.' });
+  }
+  const stock = getQuote(data.stock_id);
+  if (!stock) {
+    return res.status(400).json({ error: 'Stock not found.' });
+  }
+  const sellTrigger = findSellTrigger(data.userId, data.stock_id);
+  if (!sellTrigger) {
+    const newTrigger: SellTrigger = {
+      id: generateId(),
+      user_id: user.id,
+      stock_id: data.stock_id,
+      sell_amount: data.sell_amount,
+    };
+    db.sell_triggers.push(newTrigger);
+    return res.json({ response: 'Set sell trigger successful.' });
+  }
+  sellTrigger.sell_amount = data.sell_amount;
+  return res.json({ response: 'Update sell trigger successful.' });
+});
+
+
 
 apiRouter.post('/SET_SELL_TRIGGER', (req: Request, res: Response): void => {
   const data: SetSellTriggerType = req.body;
