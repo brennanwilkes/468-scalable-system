@@ -115,8 +115,8 @@ addition to an optional debug message -->
  <xsd:simpleType name="unixTimeLimits">
   <xsd:restriction base="xsd:integer">
 
-	 <xsd:minInclusive value="1672560000000"/> <!-- Jan 1, 2021 -->
-	 <xsd:maxInclusive value="1682924400000"/><!--May 1, 2021 -->
+	 <xsd:minInclusive value="1672560000000"/> <!-- Jan 1, 2023 -->
+	 <xsd:maxInclusive value="1682924400000"/><!--May 1, 2023 -->
 
 
 </xsd:restriction>
