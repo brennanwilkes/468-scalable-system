@@ -7,16 +7,16 @@ import { LogQuoteServer } from '../mongoTypes';
  * cache before calling the quote server. 
  * @param stockSymbol Symbol of the Stock to get a quote of
  */
-export async function getQuote(stockSymbol: string, userId: string, redisClient: any, mongoClient: MongoClient, byPassRedis?: boolean): Promise<{price: number; cryptokey: string}> {
+export async function getQuote(stockSymbol: string, userId: string, transactionNumber: number, redisClient: any, mongoClient: MongoClient, optional?: {byPassRedis?: boolean, skipQuoteLog?: boolean}): Promise<number> {
     if(process.env.DISABLE_QUOTE_SOCKET == 'true') {
-        return {price: 1,  cryptokey: "testCryptoKey"};
+        return 1;
     }
 
-    if(!byPassRedis) {
-        const result: {price: number; cryptokey: string;} = JSON.parse(await redisClient.get(stockSymbol));
+    if(!optional?.byPassRedis) {
+        const result: string = await redisClient.get(stockSymbol);
         if(result) {
             //TODO: Log System Event: Quote from Cache
-            return result;
+            return parseInt(result);
         }
     }
 
@@ -32,11 +32,12 @@ export async function getQuote(stockSymbol: string, userId: string, redisClient:
             //[Quote, SYM, UserID, Timestamp, Cryptokey]
             const returnedData = data.toString().split(',')
 
-            //Log Quote
+            if(!optional?.skipQuoteLog) {
+                            //Log Quote
             const logQuote: Partial<LogQuoteServer> = {
                 log_id: uuidv4(),
-                server: "TBD", //TODO: Replace with a unique server Name
-                transactionNumber: 1, //TODO: Implement Transaction Numbers
+                server: "Server1", //TODO: Replace with a unique server Name
+                transactionNumber: transactionNumber,
                 timestamp: Date.now(),
                 type: 'Quote',
                 userId: returnedData[2],
@@ -46,9 +47,11 @@ export async function getQuote(stockSymbol: string, userId: string, redisClient:
                 cryptokey: returnedData[4]
             }
             await mongoClient.db("Transaction-Server").collection('Logs').insertOne(logQuote);
+            }
 
-            const returnResult = {price: parseFloat(returnedData[0]), cryptokey: returnedData[4]}
-            await redisClient.set(returnedData[1], JSON.stringify(returnResult), {PX: 3_000}) //Sets Redis Key to expire in 3 seconds
+
+            const returnResult = parseFloat(returnedData[0])
+            await redisClient.set(returnedData[1], returnResult, {PX: 3_000}) //Sets Redis Key to expire in 3 seconds
             resolve(returnResult)
         })
     })

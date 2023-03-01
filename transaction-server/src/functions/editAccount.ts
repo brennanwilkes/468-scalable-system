@@ -7,7 +7,7 @@ import {v4 as uuidv4} from 'uuid';
  * the event is always logged. 
  * @param mongoClient DB connection
  */
-export async function editAccount(mongoClient: MongoClient, userId: string, action: 'add' | 'remove', amount: number): Promise<void> {
+export async function editAccount(mongoClient: MongoClient, userId: string, action: 'add' | 'remove', amount: number, transactionNumber: number): Promise<void> {
     const user: UserMongo = (await mongoClient.db('Transaction-Server').collection('Users').findOne({username: userId})) as any;
     if(action == 'add') {
         user.account_balance += amount;
@@ -18,8 +18,8 @@ export async function editAccount(mongoClient: MongoClient, userId: string, acti
 
     const logAccount: Partial<LogAccountTransaction> = {
         log_id: uuidv4(),
-        server: "TBD", //TODO: Replace with a unique server Name
-        transactionNumber: 1, //TODO: Implement Transaction Numbers
+        server: "Server1", //TODO: Replace with a unique server Name
+        transactionNumber: transactionNumber,
         timestamp: Date.now(),
         type: 'Account',
         userId: userId,

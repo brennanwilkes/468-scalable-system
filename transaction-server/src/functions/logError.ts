@@ -19,7 +19,7 @@ export async function logError(client: MongoClient, transactionNumer: number, co
         log_id: uuidv4(),
         type: 'Error',
         command: command,
-        server: "TBD", //TODO: Replace with a unique server Name
+        server: "Server1", //TODO: Replace with a unique server Name
         transactionNumber: transactionNumer,
         timestamp: Date.now(),
     }
