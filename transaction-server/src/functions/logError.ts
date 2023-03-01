@@ -1,28 +1,32 @@
 import { MongoClient } from 'mongodb';
-import { LogUserCommand } from '../mongoTypes';
+import { LogErrorEvent } from '../mongoTypes';
 import {v4 as uuidv4} from 'uuid';
 
 /**
- * Logs a User Command and returns a transaction Number
+ * Logs an ErrorEvent
  * @param dbConnection 
  */
-export async function logUserCommand(dbConnection: MongoClient, command: string, userId: string, optionalParams?: {
+export async function logError(client: MongoClient, transactionNumer: number, command: string, optionalParams?: {
+    userId?: string;
     stockSymbol?: string;
     filename?: string;
     funds?: number;
+    errorMessage?: string;
 }){
 
       //Log User Command
-    const log: Partial<LogUserCommand> = {
+    const log: Partial<LogErrorEvent> = {
         log_id: uuidv4(),
-        type: 'User',
+        type: 'Error',
         command: command,
         server: "TBD", //TODO: Replace with a unique server Name
-        transactionNumber: 1, //TODO: Implement Transaction Numbers
-        userId: userId,
+        transactionNumber: transactionNumer,
         timestamp: Date.now(),
     }
     if(optionalParams) {
+        if(optionalParams.userId) {
+            log.userId =optionalParams.userId;
+        }
         if(optionalParams.stockSymbol) {
             log.stockSymbol = optionalParams.stockSymbol;
         }
@@ -32,7 +36,10 @@ export async function logUserCommand(dbConnection: MongoClient, command: string,
         if(optionalParams.funds) {
             log.funds = optionalParams.funds;
         }
+        if(optionalParams.errorMessage) {
+            log.errorMessage = optionalParams.errorMessage;
+        }
     }
-    await dbConnection.db("Transaction-Server").collection('Logs').insertOne(log);
+    await client.db("Transaction-Server").collection('Logs').insertOne(log);
 
 }

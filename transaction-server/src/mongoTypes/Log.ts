@@ -28,7 +28,7 @@ export interface LogQuoteServer extends LogMongo {
 export interface LogAccountTransaction extends LogMongo {
     userId: string;
     action: string;
-    funds: string;
+    funds: number;
 }
 
 export interface LogSystemEvent extends LogMongo {

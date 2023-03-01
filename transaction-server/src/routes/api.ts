@@ -1,12 +1,15 @@
 import express, { Request, Response, Router } from 'express';
-import { AddType, BuyType, CancelBuyType, CancelSellType, CancelSetBuyType, CancelSetSellType, CommitBuyType, CommitSellType, DisplaySummaryType, DumplogType, QuoteType, SellType, SetBuyAmountType, SetBuyTriggerType, SetSellAmountType, SetSellTriggerType } from '../types';
+import { AddType, BuyType, CancelBuyType, CancelSellType, CancelSetBuyType, CancelSetSellType, CommitBuyType, CommitSellType, DisplaySummaryReturnType, DisplaySummaryType, DumplogType, QuoteType, SellType, SetBuyAmountType, SetBuyTriggerType, SetSellAmountType, SetSellTriggerType } from '../types';
 import { apiMiddleware } from '../middleware/api';
 import { getQuote } from '../functions/getQuote';
 import { MongoClient, FindCursor, WithId, Document } from 'mongodb';
-import { CredentialMongo, TransactionMongo, UserMongo } from '../mongoTypes';
+import { CredentialMongo, LogSystemEvent, TransactionMongo, UserMongo } from '../mongoTypes';
 import {v4 as uuidv4} from 'uuid';
 import { logUserCommand } from '../functions/logUserCommand';
 import { createLogFile } from '../functions/createLogFile';
+import {createClient} from 'redis';
+import { editAccount } from 'src/functions/editAccount';
+import { logError } from 'src/functions/logError';
 
 require('dotenv').config();
 
@@ -16,6 +19,9 @@ const uri = `mongodb://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWOR
 
 const client = new MongoClient(uri);
 client.connect();
+
+const redisClient = createClient({url: `redis://${process.env.REDIS_URL}:${process.env.REDIS_PORT}/0`});
+redisClient.connect();
 
 apiRouter.use(apiMiddleware);
 
@@ -48,7 +54,7 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
 
     const newUser: Partial<UserMongo> = {
       username: data.userId,
-      account_balance: data.amount,
+      account_balance: 0,
       stocks_owned: [],
       account_balance_reserves: [],
       stocks_owned_reserves: [],
@@ -58,12 +64,11 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
       updated: Date.now(),
       credential_id: credentialResult.insertedId.toString(),
     }
-    const userResult = await client.db("Transaction-Server").collection('Users').insertOne(newUser);
+    await client.db("Transaction-Server").collection('Users').insertOne(newUser);
+    await editAccount(client, data.userId, 'add', data.amount);
     res.json({response: `Account Created and Amount added to Account. Account holds ${newUser.account_balance}`});
   } else {
-    user.account_balance += data.amount;
-    user.updated = Date.now();
-    await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+    await editAccount(client, data.userId, 'add', data.amount);
     res.json({response: `Amount added to Account. Account now holds ${user.account_balance}`});
   }
   
@@ -72,7 +77,7 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
 apiRouter.get('/QUOTE', async (req: Request, res: Response): Promise<void> => {
   const data: QuoteType = req.query as any;
   await logUserCommand(client, 'QUOTE', data.userId, {stockSymbol: data.stockSymbol});
-  const amount = await getQuote(data.stockSymbol);
+  const amount = await getQuote(data.stockSymbol, data.userId, redisClient, client);
   res.json({price: amount.price});
 });
 
@@ -84,16 +89,18 @@ apiRouter.post('/BUY', async (req: Request, res: Response): Promise<void> => {
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
+    await logError(client, transactionNumber, 'BUY', {userId: data.userId, errorMessage: 'User Not Found'})
     res.json({success: false, response: 'User Not Found'});
     return;
   }
 
   if(user.account_balance < data.amount) {
+    await logError(client, transactionNumber, 'BUY', {userId: data.userId, errorMessage: 'Not enough funds'})
     res.json({success: false, response: 'Not enough funds'});
     return;
   }
 
-  const getQuoteResult = await getQuote(data.stockSymbol);
+  const getQuoteResult = await getQuote(data.stockSymbol, data.userId, redisClient, client);
   user.pending_buy = {stock_name: data.stockSymbol, stock_price: getQuoteResult.price,amount_to_buy: data.amount, timestamp: Date.now(), cryptokey: getQuoteResult.cryptokey};
   user.updated = Date.now();
 
@@ -112,11 +119,13 @@ apiRouter.post('/COMMIT_BUY', async (req: Request, res: Response): Promise<void>
   
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
+    await logError(client, transactionNumber, 'COMMIT_BUY', {userId: data.userId, errorMessage: 'User Not Found'})
     res.json({success: false, response: 'User Not Found'});
     return;
   }
 
   if(user.pending_buy == null) {
+    await logError(client, transactionNumber, 'COMMIT_BUY', {userId: data.userId, errorMessage: 'No pending BUY commands found. Please run a BUY command first'})
     res.json({success: false, response: 'No pending BUY commands found. Please run a BUY command first'});
     return;
   }
@@ -125,6 +134,7 @@ apiRouter.post('/COMMIT_BUY', async (req: Request, res: Response): Promise<void>
     user.pending_buy = undefined;
     user.updated = Date.now();
     await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+    await logError(client, transactionNumber, 'COMMIT_BUY', {userId: data.userId, errorMessage: 'Pending BUY command too old. Please try again'})
     res.json({success: false, response: 'Pending BUY command too old. Please try again'});
     return;
   }
@@ -163,10 +173,27 @@ apiRouter.post('/COMMIT_BUY', async (req: Request, res: Response): Promise<void>
     user_id: user._id.toString(),
   }
   await client.db("Transaction-Server").collection('Transactions').insertOne(transaction);
+
+  const systemLog: Partial<LogSystemEvent> = {
+    log_id: uuidv4(),
+    server: "TBD", //TODO: Replace with a unique server Name
+    transactionNumber: 1, //TODO: Implement Transaction Numbers
+    timestamp: Date.now(),
+    type: 'System',
+    command: 'BUY', 
+    userId: data.userId,
+    stockSymbol: stockName,
+    funds: user.pending_buy.amount_to_buy,
+  }
+
+  const amount = user.pending_buy.amount_to_buy;
+
+  await client.db("Transaction-Server").collection('Logs').insertOne(systemLog);
   
   user.pending_buy = undefined;
   user.updated = Date.now();
   await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+  await editAccount(client, data.userId, 'remove', amount);
 
   res.json({success: true, response: `Stock purchased. You now own ${stockAmount} shares of ${stockName} stock`});
 });
@@ -184,6 +211,7 @@ apiRouter.post('/CANCEL_BUY', async (req: Request, res: Response): Promise<void>
   }
 
   if(user.pending_buy == null) {
+    await logError(client, transactionNumber, 'CANCEL_BUY', {userId: data.userId, errorMessage: 'No pending BUY commands found.'})
     res.json({success: false, response: 'No pending BUY commands found.'});
     return;
   }
@@ -193,6 +221,7 @@ apiRouter.post('/CANCEL_BUY', async (req: Request, res: Response): Promise<void>
     user.pending_buy = undefined;
     user.updated = Date.now();
     await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+    await logError(client, transactionNumber, 'CANCEL_BUY', {userId: data.userId, errorMessage: 'Pending BUY command too old. Please try again'})
     res.json({success: false, response: 'Pending BUY command too old. Please try again'});
     return;
   }
@@ -211,6 +240,7 @@ apiRouter.post('/SELL', async (req: Request, res: Response): Promise<void> => {
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
+    await logError(client, transactionNumber, 'SELL', {userId: data.userId, errorMessage: 'User Not Found'})
     res.json({success: false, response: 'User Not Found'});
     return;
   }
@@ -222,14 +252,16 @@ apiRouter.post('/SELL', async (req: Request, res: Response): Promise<void> => {
   })
 
   if(stock == null) {
+    await logError(client, transactionNumber, 'SELL', {userId: data.userId, errorMessage: 'You do not have any of that stock'})
     res.json({success: false, response: 'You do not have any of that stock'});
     return;
   }
 
-  const getQuoteResult = await getQuote(data.stockSymbol);
+  const getQuoteResult = await getQuote(data.stockSymbol, data.userId, redisClient, client);
   const dollarAmountCurrentlyHeld = getQuoteResult.price * stock.amount;
 
   if(dollarAmountCurrentlyHeld < data.amount) {
+    await logError(client, transactionNumber, 'SELL', {userId: data.userId, errorMessage: 'Requesting to sell more stock than you have in dollar amounts'})
     res.json({success: false, response: 'Requesting to sell more stock than you have in dollar amounts'});
     return;
   }
@@ -254,11 +286,13 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
+    await logError(client, transactionNumber, 'COMMIT_SELL', {userId: data.userId, errorMessage: 'User Not Found'})
     res.json({success: false, response: 'User Not Found'});
     return;
   }
 
   if(user.pending_sell == null) {
+    await logError(client, transactionNumber, 'COMMIT_SELL', {userId: data.userId, errorMessage: 'No pending SELL commands found. Please run a SELL command first'})
     res.json({success: false, response: 'No pending SELL commands found. Please run a SELL command first'});
     return;
   }
@@ -267,6 +301,7 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
     user.pending_sell = undefined;
     user.updated = Date.now();
     await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+    await logError(client, transactionNumber, 'COMMIT_SELL', {userId: data.userId, errorMessage: 'Pending SELL command too old. Please try again'})
     res.json({success: false, response: 'Pending SELL command too old. Please try again'});
     return;
   }
@@ -286,6 +321,7 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
     user.pending_sell = undefined;
     user.updated = Date.now();
     await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+    await logError(client, transactionNumber, 'COMMIT_SELL', {userId: data.userId, errorMessage: 'Stock could not be found in account. Command cancelled'})
     res.json({success: false, response: 'Stock could not be found in account. Command cancelled'});
     return;
   }
@@ -310,11 +346,27 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
     user_id: user._id.toString(),
   }
   await client.db("Transaction-Server").collection('Transactions').insertOne(transaction);
+
+  const systemLog: Partial<LogSystemEvent> = {
+    log_id: uuidv4(),
+    server: "TBD", //TODO: Replace with a unique server Name
+    transactionNumber: 1, //TODO: Implement Transaction Numbers
+    timestamp: Date.now(),
+    type: 'System',
+    command: 'SELL', 
+    userId: data.userId,
+    stockSymbol: stockName,
+    funds: user.pending_sell.amount_to_sell,
+  }
+
+  const amount = user.pending_sell.amount_to_sell;
+
+  await client.db("Transaction-Server").collection('Logs').insertOne(systemLog);
   
   user.pending_buy = undefined;
   user.updated = Date.now();
   await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
-
+  await editAccount(client, data.userId, 'add', amount);
   res.json({success: true, response: `Stock purchased. You sold ${stockAmount} shares of ${stockName} stock for a total of \$${amountToSell}`});
 });
 
@@ -326,11 +378,13 @@ apiRouter.post('/CANCEL_SELL', async (req: Request, res: Response): Promise<void
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
+    await logError(client, transactionNumber, 'CANCEL_SELL', {userId: data.userId, errorMessage: 'User Not Found'})
     res.json({success: false, response: 'User Not Found'});
     return;
   }
 
   if(user.pending_sell == null) {
+    await logError(client, transactionNumber, 'CANCEL_SELL', {userId: data.userId, errorMessage: 'No pending SELL commands found.'})
     res.json({success: false, response: 'No pending SELL commands found.'});
     return;
   }
@@ -340,6 +394,7 @@ apiRouter.post('/CANCEL_SELL', async (req: Request, res: Response): Promise<void
     user.pending_sell = undefined;
     user.updated = Date.now();
     await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+    await logError(client, transactionNumber, 'CANCEL_SELL', {userId: data.userId, errorMessage: 'Pending SELL command too old. Please try again'})
     res.json({success: false, response: 'Pending SELL command too old. Please try again'});
     return;
   }
@@ -498,7 +553,25 @@ apiRouter.get('/DISPLAY_SUMMARY',  async (req: Request, res: Response): Promise<
   const data: DisplaySummaryType = req.query as any;
   await logUserCommand(client, 'DUMPLOG', data.userId,);
   //get all user data
-  res.json({response: 'Hello, World!'});
+  const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
+  const returnValue: DisplaySummaryReturnType = {
+    transactionHistory: [],
+    stocksOwned: user.stocks_owned,
+    funds: user.account_balance,
+    buyTriggers: user.buy_triggers,
+    sellTriggers: user.sell_triggers,
+  };
+  const transactionPointer = client.db("Transaction-Server").collection('Transactions').find({ userId: data.userId}, {sort: {timestamp: -1}});
+  await transactionPointer.forEach((transaction) => {
+    const transactionType : TransactionMongo = transaction as TransactionMongo;
+    returnValue.transactionHistory.push({
+      timestamp: transactionType.timestamp,
+      action: transactionType.transaction_type,
+      stockSymbol: transactionType.stock_symbol,
+      amount: transactionType.amount,
+    })
+  })
+  res.json({success: true, response: 'Summary Data Retrieved', data: returnValue});
 })
 
 
