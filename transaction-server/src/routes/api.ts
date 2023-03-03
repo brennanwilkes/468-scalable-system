@@ -3,7 +3,7 @@ import { AddType, BuyType, CancelBuyType, CancelSellType, CancelSetBuyType, Canc
 import { apiMiddleware } from '../middleware/api';
 import { getQuote } from '../functions/getQuote';
 import { MongoClient, FindCursor, WithId, Document } from 'mongodb';
-import { CredentialMongo, LogSystemEvent, TransactionMongo, UserMongo } from '../mongoTypes';
+import { CredentialMongo, LogSystemEvent, TransactionMongo, TriggerMongo, UserMongo } from '../mongoTypes';
 import {v4 as uuidv4} from 'uuid';
 import { logUserCommand } from '../functions/logUserCommand';
 import { createLogFile } from '../functions/createLogFile';
@@ -43,7 +43,7 @@ apiRouter.get('/', async (req: Request, res: Response): Promise<void> => {
 apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
   const data: AddType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'ADD', data.userId, transactionNumber, {funds: data.amount});
+  await logUserCommand(client, 'ADD',  transactionNumber, {funds: data.amount, userId: data.userId});
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
@@ -65,8 +65,6 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
       stocks_owned: [],
       account_balance_reserves: [],
       stocks_owned_reserves: [],
-      buy_triggers: [],
-      sell_triggers: [],
       created: Date.now(),
       updated: Date.now(),
       credential_id: credentialResult.insertedId.toString(),
@@ -84,7 +82,7 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
 apiRouter.get('/QUOTE', async (req: Request, res: Response): Promise<void> => {
   const data: QuoteType = req.query as any;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'QUOTE', data.userId, transactionNumber, {stockSymbol: data.stockSymbol});
+  await logUserCommand(client, 'QUOTE',transactionNumber, {stockSymbol: data.stockSymbol, userId: data.userId});
   const amount = await getQuote(data.stockSymbol, data.userId, transactionNumber, redisClient, client);
   res.json({price: amount});
 });
@@ -94,7 +92,7 @@ apiRouter.post('/BUY', async (req: Request, res: Response): Promise<void> => {
   //Stage transaction temporarily in mongo, do not execute.
   const data: BuyType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'BUY', data.userId, transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol});
+  await logUserCommand(client, 'BUY',  transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
@@ -125,7 +123,7 @@ apiRouter.post('/COMMIT_BUY', async (req: Request, res: Response): Promise<void>
   //Account depletes, but stock added to account
   const data: CommitBuyType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'COMMIT_BUY', data.userId, transactionNumber);
+  await logUserCommand(client, 'COMMIT_BUY', transactionNumber, {userId: data.userId});
   
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
@@ -212,7 +210,7 @@ apiRouter.post('/CANCEL_BUY', async (req: Request, res: Response): Promise<void>
   //BUY is cancelled 
   const data: CancelBuyType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'CANCEL_BUY', data.userId, transactionNumber);
+  await logUserCommand(client, 'CANCEL_BUY',  transactionNumber, {userId: data.userId});
   
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
@@ -247,7 +245,7 @@ apiRouter.post('/SELL', async (req: Request, res: Response): Promise<void> => {
   //Save transaction temporarily in mongo, do not execute. 
   const data: SellType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'SELL', data.userId, transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol});
+  await logUserCommand(client, 'SELL', transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
@@ -293,7 +291,7 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
   //Stock depletes, but account money increases
   const data: CommitSellType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'COMMIT_SELL', data.userId, transactionNumber);
+  await logUserCommand(client, 'COMMIT_SELL', transactionNumber, {userId: data.userId});
   
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -386,7 +384,7 @@ apiRouter.post('/CANCEL_SELL', async (req: Request, res: Response): Promise<void
   //SELL is cancelled
   const data: CancelSellType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'CANCEL_SELL', data.userId, transactionNumber);
+  await logUserCommand(client, 'CANCEL_SELL',transactionNumber, {userId: data.userId});
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
@@ -420,7 +418,7 @@ apiRouter.post('/CANCEL_SELL', async (req: Request, res: Response): Promise<void
 apiRouter.post('/SET_BUY_AMOUNT', async (req: Request, res: Response): Promise<void> => {
   const data: SetBuyAmountType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'SET_BUY_AMOUNT', data.userId, transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol});
+  await logUserCommand(client, 'SET_BUY_AMOUNT',  transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
   //Cash of user must be hihger than buy amount at transaction time
   //Creates a reserve
   // User cash removed to that reserve
@@ -464,13 +462,13 @@ apiRouter.post('/SET_BUY_AMOUNT', async (req: Request, res: Response): Promise<v
 apiRouter.post('/CANCEL_SET_BUY', async (req: Request, res: Response): Promise<void> => {
   const data: CancelSetBuyType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'CANCEL_SET_BUY', data.userId, transactionNumber, {stockSymbol: data.stockSymbol});
+  await logUserCommand(client, 'CANCEL_SET_BUY',  transactionNumber, {stockSymbol: data.stockSymbol, userId: data.userId});
   //Must havea set_buy for stock
   // Put reserves back into account
-  // Buy trigger cancelled
+  // Buy triggers cancelled
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
-    await logError(client, transactionNumber, 'CANCEL_BUY_AMOUNT', {userId: data.userId, errorMessage: 'User Not Found'})
+    await logError(client, transactionNumber, 'CANCEL_SET_BUY', {userId: data.userId, errorMessage: 'User Not Found'})
     res.json({success: false, response: 'User Not Found'});
     return;
   }
@@ -483,36 +481,31 @@ apiRouter.post('/CANCEL_SET_BUY', async (req: Request, res: Response): Promise<v
     return false;
   });
 
-  let triggerIndex: number;
-  const trigger = user.buy_triggers.find((trigger, i) => {
-    if(trigger.stock_name == data.stockSymbol) {
-      triggerIndex = i;
-      return true;
-    }
-    return false;
-  })
+  const buyTriggers: TriggerMongo[] = (await client.db('Transaction-Server').collection('Triggers').find({user_id: user._id.toString(), type: 'BUY', stock_name: data.stockSymbol}).toArray()) as any;
 
-  if(!reserve && !trigger) {
-    await logError(client, transactionNumber, 'CANCEL_BUY_AMOUNT', {userId: data.userId, errorMessage: 'Could not find any SET BUY AMOUNT', stockSymbol: data.stockSymbol})
+  const buyIdsToRemove = buyTriggers.map(trigger => trigger.trigger_id);
+
+
+  if(!reserve && buyIdsToRemove.length == 0) {
+    await logError(client, transactionNumber, 'CANCEL_SET_BUY', {userId: data.userId, errorMessage: 'Could not find any SET BUY AMOUNT', stockSymbol: data.stockSymbol})
     res.json({success: false, response: 'Could not find any SET BUY AMOUNT'});
     return;
   }
 
   user.account_balance_reserves.splice(reserveIndex!, 1);
-  user.buy_triggers.splice(triggerIndex!, 1);
 
 
   user.account_balance += reserve!.amount_in_reserve;
   user.updated = Date.now();
   await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
-
+  await client.db("Transaction-Server").collection('Triggers').deleteMany({trigger_id: {$in: buyIdsToRemove}});
   const systemLog: Partial<LogSystemEvent> = {
     log_id: uuidv4(),
     server: "Server1", //TODO: Replace with a unique server Name
     transactionNumber: transactionNumber,
     timestamp: Date.now(),
     type: 'System',
-    command: 'CANCEL_BUY_AMOUNT', 
+    command: 'CANCEL_SET_BUY', 
     userId: data.userId,
     stockSymbol: data.stockSymbol,
     funds: reserve!.amount_in_reserve,
@@ -526,26 +519,34 @@ apiRouter.post('/CANCEL_SET_BUY', async (req: Request, res: Response): Promise<v
 apiRouter.post('/SET_BUY_TRIGGER', async (req: Request, res: Response): Promise<void> => {
   const data: SetBuyTriggerType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'SET_BUY_TRIGGER', data.userId, transactionNumber, {stockSymbol: data.stockSymbol, funds: data.amount});
-  // Check if user has enough balance to create a trigger
-  // const account = getAccountBalance(data.userId);
-  // if (!account || account.balance < data.buy_amount) {
-  //   return res.status(400).json({ error: 'Insufficient account balance.' });
-  // }
+  await logUserCommand(client, 'SET_BUY_TRIGGER', transactionNumber, {stockSymbol: data.stockSymbol, funds: data.amount, });
+  // Check if user has a reserve for that stock
 
-  // // Create buy trigger
-  // const buyTrigger = {
-  //   id: uuidv4(),
-  //   user_id: data.userId,
-  //   stock_id: data.stockId,
-  //   reserved_balance: data.buy_amount
-  // };
+  const user:UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
+  if(user == null) {
+    await logError(client, transactionNumber, 'SET_BUY_TRIGGER', {userId: data.userId, errorMessage: 'User Not Found'})
+    res.json({success: false, response: 'User Not Found'});
+    return;
+  }
 
-  // // Update db
-  // db.buy_triggers.push(buyTrigger);
-  // account.balance -= data.buy_amount;
+  const reserve = user.account_balance_reserves.find(reserve => reserve.stock_name == data.stockSymbol);
+  if(!reserve) {
+    await logError(client, transactionNumber, 'SET_BUY_TRIGGER', {userId: data.userId, errorMessage: 'Could not find any SET BUY AMOUNT', stockSymbol: data.stockSymbol})
+    res.json({success: false, response: 'Could not find any SET BUY AMOUNT'});
+    return;
+  }
 
-  res.json({ response: 'Set buy_trigger successful.' });
+  const trigger: Partial<TriggerMongo> = {
+    trigger_id: uuidv4(),
+    user_id: user._id.toString(),
+    stock_symbol: data.stockSymbol,
+    trigger_type: 'BUY',
+    trigger_price: data.amount,
+    transactionNumber: transactionNumber,
+  }
+
+  await client.db('Transaction-Server').collection('Triggers').insertOne(trigger);
+  res.json({success: true, response: 'BUY TRIGGER successfully set.'});
 });
 
 
@@ -553,7 +554,7 @@ apiRouter.post('/SET_BUY_TRIGGER', async (req: Request, res: Response): Promise<
 apiRouter.post('/SET_SELL_AMOUNT', async (req: Request, res: Response): Promise<void> => {
   const data: SetSellAmountType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'SET_SELL_AMOUNT', data.userId, transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol});
+  await logUserCommand(client, 'SET_SELL_AMOUNT', transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
 
 
   //Stock of user must be hihger than sell amount
@@ -614,33 +615,105 @@ apiRouter.post('/SET_SELL_AMOUNT', async (req: Request, res: Response): Promise<
 apiRouter.post('/SET_SELL_TRIGGER', async (req: Request, res: Response): Promise<void> => {
   const data: SetSellTriggerType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'SET_SELL_TRIGGER', data.userId, transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol});
-  // Specify sell_amount first
-  // Update db
-  res.json({response: 'Hello, World!'});
+  await logUserCommand(client, 'SET_SELL_TRIGGER', transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
+  
+  const user:UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
+  if(user == null) {
+    await logError(client, transactionNumber, 'SET_SELL_TRIGGER', {userId: data.userId, errorMessage: 'User Not Found'})
+    res.json({success: false, response: 'User Not Found'});
+    return;
+  }
+
+  const reserve = user.stocks_owned_reserves.find(reserve => reserve.stock_name == data.stockSymbol);
+  if(!reserve) {
+    await logError(client, transactionNumber, 'SET_SELL_TRIGGER', {userId: data.userId, errorMessage: 'Could not find any SET SELL AMOUNT', stockSymbol: data.stockSymbol})
+    res.json({success: false, response: 'Could not find any SET SELL AMOUNT'});
+    return;
+  }
+
+  const trigger: Partial<TriggerMongo> = {
+    trigger_id: uuidv4(),
+    user_id: user._id.toString(),
+    stock_symbol: data.stockSymbol,
+    trigger_type: 'SELL',
+    trigger_price: data.amount,
+    transactionNumber: transactionNumber,
+  }
+
+  await client.db('Transaction-Server').collection('Triggers').insertOne(trigger);
+  res.json({success: true, response: 'SELL TRIGGER successfully set.'});
 })
 
 apiRouter.post('/CANCEL_SET_SELL', async (req: Request, res: Response): Promise<void> => {
   const data: CancelSetSellType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'CANCEL_SET_SELL', data.userId, transactionNumber, { stockSymbol: data.stockSymbol});
+  await logUserCommand(client, 'CANCEL_SET_SELL', transactionNumber, { stockSymbol: data.stockSymbol, userId: data.userId});
   // Must havea set_sell for stock
   // Put reserves back into account
   // sell trigger cancelled
-  res.json({response: 'Hello, World!'});
+  const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
+  if(user == null) {
+    await logError(client, transactionNumber, 'CANCEL_SET_SELL', {userId: data.userId, errorMessage: 'User Not Found'})
+    res.json({success: false, response: 'User Not Found'});
+    return;
+  }
+  let reserveIndex: number;
+  const reserve = user.stocks_owned_reserves.find((reserve, i) => {
+    if(reserve.stock_name == data.stockSymbol) {
+      reserveIndex = i;
+      return true;
+    }
+    return false;
+  });
+
+  const sellTriggers: TriggerMongo[] = (await client.db('Transaction-Server').collection('Triggers').find({user_id: user._id.toString(), type: 'SELL', stock_name: data.stockSymbol}).toArray()) as any;
+
+  const sellIdsToRemove = sellTriggers.map(trigger => trigger.trigger_id);
+
+
+  if(!reserve && sellIdsToRemove.length == 0) {
+    await logError(client, transactionNumber, 'CANCEL_SET_SELL', {userId: data.userId, errorMessage: 'Could not find any SET SELL AMOUNT', stockSymbol: data.stockSymbol})
+    res.json({success: false, response: 'Could not find any SET SELL AMOUNT'});
+    return;
+  }
+
+  user.stocks_owned_reserves.splice(reserveIndex!, 1);
+
+  const stockIndex = user.stocks_owned.findIndex(stock => stock.stock_name == data.stockSymbol);
+  user.stocks_owned[stockIndex].amount += reserve!.amount_in_reserve;
+  user.updated = Date.now();
+  await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
+  await client.db("Transaction-Server").collection('Triggers').deleteMany({trigger_id: {$in: sellIdsToRemove}});
+  const systemLog: Partial<LogSystemEvent> = {
+    log_id: uuidv4(),
+    server: "Server1", //TODO: Replace with a unique server Name
+    transactionNumber: transactionNumber,
+    timestamp: Date.now(),
+    type: 'System',
+    command: 'CANCEL_SET_SELL', 
+    userId: data.userId,
+    stockSymbol: data.stockSymbol,
+    funds: reserve!.amount_in_reserve,
+  }
+
+  await client.db("Transaction-Server").collection('Logs').insertOne(systemLog);
+
+  res.json({success: true, response: 'SELL AMOUNT successfully cancelled.'});
 })
 
 apiRouter.get('/DUMPLOG', async (req: Request, res: Response): Promise<void> => {
   const data: DumplogType = req.query as any;
+  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  
   //check if supervisor
   // if not - return user history into a file
   // if yes - returns a complete log file into a file
   let mongoData: FindCursor<WithId<Document>>;
   if(data.userId) {
-    const transactionNumber = transactionNumberClass.getTransactionNumber();
-    await logUserCommand(client, 'DUMPLOG', data.userId, transactionNumber, {filename: data.fileName});
+    await logUserCommand(client, 'DUMPLOG', transactionNumber, {filename: data.fileName, userId: data.userId});
     mongoData = client.db("Transaction-Server").collection('Logs').find({ userId: data.userId, type: 'User' }, {sort: {timestamp: 1}});
   } else {
+    await logUserCommand(client, 'DUMPLOG', transactionNumber, {filename: data.fileName});
     mongoData = client.db("Transaction-Server").collection('Logs').find().sort({timestamp: 1});
   }
   const logFilePath = await createLogFile(data.fileName, mongoData);
@@ -651,15 +724,17 @@ apiRouter.get('/DUMPLOG', async (req: Request, res: Response): Promise<void> => 
 apiRouter.get('/DISPLAY_SUMMARY',  async (req: Request, res: Response): Promise<void> => {
   const data: DisplaySummaryType = req.query as any;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'DUMPLOG', data.userId, transactionNumber);
+  await logUserCommand(client, 'DUMPLOG', transactionNumber, {userId: data.userId});
   //get all user data
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
+  const buyTriggers: TriggerMongo[] = (await client.db('Transaction-Server').collection('Triggers').find({user_id: user._id.toString(), type: 'BUY'}).toArray()) as any;
+  const sellTriggers: TriggerMongo[] = (await client.db('Transaction-Server').collection('Triggers').find({user_id: user._id.toString(), type: 'SELL'}).toArray()) as any;
   const returnValue: DisplaySummaryReturnType = {
     transactionHistory: [],
     stocksOwned: user.stocks_owned,
     funds: user.account_balance,
-    buyTriggers: user.buy_triggers,
-    sellTriggers: user.sell_triggers,
+    buyTriggers: buyTriggers,
+    sellTriggers: sellTriggers,
   };
   const transactionPointer = client.db("Transaction-Server").collection('Transactions').find({ userId: data.userId}, {sort: {timestamp: -1}});
   await transactionPointer.forEach((transaction) => {

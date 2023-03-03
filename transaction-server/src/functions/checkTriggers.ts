@@ -1,22 +1,21 @@
 import e from 'express';
-import { MongoClient } from 'mongodb';
-import { LogSystemEvent, TransactionMongo, UserMongo } from '../mongoTypes';
+import { MongoClient, ObjectId } from 'mongodb';
+import { LogSystemEvent, TransactionMongo, TriggerMongo, UserMongo } from '../mongoTypes';
 import { getQuote } from './getQuote';
 import {v4 as uuidv4} from 'uuid';
 
 export async function checkTriggers(redisClient: any, mongoClient: MongoClient) {
-    const buyUsers = await mongoClient.db("Transaction-Server").collection('Users').find({'buy_triggers.0': {$exists: true}}).toArray();
+    const buyTriggers: TriggerMongo[] = await mongoClient.db("Transaction-Server").collection('Triggers').find({'trigger_type': "BUY"}).toArray() as any[];
     
 
-    for(const user of buyUsers) {
-        const userType:UserMongo = user as any;
-        const removeTriggerIndexes = [];
-        for(const [buy_index, buy_trigger] of userType.buy_triggers.entries()) {
-            const price = await getQuote(buy_trigger.stock_name, userType.username, 0, redisClient, mongoClient, {skipQuoteLog: true})
-            if(price <= buy_trigger.trigger_price){
+    const removeTriggerIds = [];
+        for(const trigger of buyTriggers) {
+            const price = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
+            if(price <= trigger.trigger_price){
                     let index: number;
+                    const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
                     const reserve = userType.account_balance_reserves.find((reserve, i) => {
-                        if(reserve.stock_name == buy_trigger.stock_name) {
+                        if(reserve.stock_name == trigger.stock_symbol) {
                             index = i;
                             return true;
                         }
@@ -24,7 +23,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                     });
                     let stockIndex: number; 
                     let stock = userType.stocks_owned.find((stock, i) => {
-                        if(stock.stock_name == buy_trigger.stock_name) {
+                        if(stock.stock_name == trigger.stock_symbol) {
                             stockIndex = i;
                             return true;
                         }
@@ -36,7 +35,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         stock.amount += amountOfStock
                         userType.stocks_owned[stockIndex!] = stock;
                     } else {
-                        stock = {stock_name: buy_trigger.stock_name, amount: amountOfStock}
+                        stock = {stock_name: trigger.stock_symbol, amount: amountOfStock}
                         userType.stocks_owned.push(stock);
                     };
                     const transaction: Partial<TransactionMongo> = {
@@ -45,22 +44,27 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         amount: reserve!.amount_in_reserve,
                         username: userType.username,
                         transaction_type: 'BUY',
-                        stock_symbol: buy_trigger.stock_name,
+                        stock_symbol: trigger.stock_symbol,
                         user_id: userType._id.toString(),
                     }
                     const systemLog: Partial<LogSystemEvent> = {
                         log_id: uuidv4(),
                         server: "Server1",
-                        transactionNumber: buy_trigger.transactionNumber,
+                        transactionNumber: trigger.transactionNumber,
                         timestamp: Date.now(),
                         type: 'System',
                         command: 'BUY',
                         userId: userType.username,
-                        stockSymbol: buy_trigger.stock_name,
+                        stockSymbol: trigger.stock_symbol,
                         funds: reserve!.amount_in_reserve,
                     }
-                    removeTriggerIndexes.push(buy_index);
+                    removeTriggerIds.push(trigger._id);
                     userType.account_balance_reserves.splice(index!, 1);
+                    userType.updated = Date.now();
+                    await mongoClient.db("Transaction-Server").collection('Users').updateOne({_id: userType._id}, {$set: userType});
+                    await mongoClient.db("Transaction-Server").collection('Transactions').insertOne(transaction);
+                    await mongoClient.db("Transaction-Server").collection('Logs').insertOne(systemLog);
+
 
                     
 
@@ -68,25 +72,18 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
             };
             
         }
-        for(const trig_index of removeTriggerIndexes) {
-            userType.buy_triggers.splice(trig_index, 1);
-        }
-        userType.updated = Date.now();
-        mongoClient.db("Transaction-Server").collection('Users').updateOne({username: userType.username}, {$set: userType});
-        return;
-    };
+    await mongoClient.db("Transaction-Server").collection('Triggers').deleteMany({_id: {$in: removeTriggerIds}});
 
-    const sellUsers = await mongoClient.db("Transaction-Server").collection('Users').find({'sell_triggers.0': {$exists: true}}).toArray();
+    const sellTriggers: TriggerMongo[] = await mongoClient.db("Transaction-Server").collection('Triggers').find({'trigger_type': "SELL"}).toArray() as any;
 
-    for(const user of sellUsers) {
-        const userType:UserMongo = user as any;
-        const removeTriggerIndexes = [];
-        for(const [sell_index, sell_trigger] of userType.sell_triggers.entries()) {
-            const price = await getQuote(sell_trigger.stock_name, userType.username, 0, redisClient, mongoClient, {skipQuoteLog: true})
-            if(price >= sell_trigger.trigger_price){
+    const removeTriggerIdsSell = [];
+        for(const trigger of sellTriggers) {
+            const price = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
+            if(price >= trigger.trigger_price){
                     let index: number;
+                    const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
                     const reserve = userType.stocks_owned_reserves.find((reserve, i) => {
-                        if(reserve.stock_name == sell_trigger.stock_name) {
+                        if(reserve.stock_name == trigger.stock_symbol) {
                             index = i;
                             return true;
                         }
@@ -94,7 +91,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                     });
                     let stockIndex: number; 
                     let stock = userType.stocks_owned.find((stock, i) => {
-                        if(stock.stock_name == sell_trigger.stock_name) {
+                        if(stock.stock_name == trigger.stock_symbol) {
                             stockIndex = i;
                             return true;
                         }
@@ -112,22 +109,26 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         amount: amountOfMoney,
                         username: userType.username,
                         transaction_type: 'SELL',
-                        stock_symbol: sell_trigger.stock_name,
+                        stock_symbol: trigger.stock_symbol,
                         user_id: userType._id.toString(),
                     }
                     const systemLog: Partial<LogSystemEvent> = {
                         log_id: uuidv4(),
                         server: "Server1",
-                        transactionNumber: sell_trigger.transactionNumber,
+                        transactionNumber: trigger.transactionNumber,
                         timestamp: Date.now(),
                         type: 'System',
                         command: 'SELL',
                         userId: userType.username,
-                        stockSymbol: sell_trigger.stock_name,
+                        stockSymbol: trigger.stock_symbol,
                         funds: amountOfMoney,
                     }
-                    removeTriggerIndexes.push(sell_index);
+                    removeTriggerIdsSell.push(trigger._id);
                     userType.stocks_owned_reserves.splice(index!, 1);
+                    userType.updated = Date.now();
+                    await mongoClient.db("Transaction-Server").collection('Users').updateOne({_id: userType._id}, {$set: userType});
+                    await mongoClient.db("Transaction-Server").collection('Transactions').insertOne(transaction);
+                    await mongoClient.db("Transaction-Server").collection('Logs').insertOne(systemLog);
 
                     
 
@@ -135,13 +136,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
             };
             
         }
-        for(const trig_index of removeTriggerIndexes) {
-            userType.buy_triggers.splice(trig_index, 1);
-        }
-        userType.updated = Date.now();
-        mongoClient.db("Transaction-Server").collection('Users').updateOne({username: userType.username}, {$set: userType});
-        return;
-    }
+    await mongoClient.db("Transaction-Server").collection('Triggers').deleteMany({_id: {$in: removeTriggerIdsSell}});
     setTimeout(() => {
         checkTriggers(redisClient, mongoClient)
     }, 1000)

@@ -6,10 +6,11 @@ import {v4 as uuidv4} from 'uuid';
  * Logs a User Command and returns a transaction Number
  * @param dbConnection 
  */
-export async function logUserCommand(dbConnection: MongoClient, command: string, userId: string, transactionNumber: number, optionalParams?: {
+export async function logUserCommand(dbConnection: MongoClient, command: string, transactionNumber: number, optionalParams?: {
     stockSymbol?: string;
     filename?: string;
     funds?: number;
+    userId?: string;
 }){
 
       //Log User Command
@@ -19,7 +20,6 @@ export async function logUserCommand(dbConnection: MongoClient, command: string,
         command: command,
         server: "Server1", //TODO: Replace with a unique server Name
         transactionNumber: transactionNumber,
-        userId: userId,
         timestamp: Date.now(),
     }
     if(optionalParams) {
@@ -32,6 +32,10 @@ export async function logUserCommand(dbConnection: MongoClient, command: string,
         if(optionalParams.funds) {
             log.funds = optionalParams.funds;
         }
+        if(optionalParams.userId) {
+            log.userId = optionalParams.userId;
+        }
+        
     }
     await dbConnection.db("Transaction-Server").collection('Logs').insertOne(log);
 

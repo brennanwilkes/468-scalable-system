@@ -23,7 +23,7 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
     var client = new net.Socket();
 
     return new Promise((resolve, reject) => {
-        client.connect(4444, 'quoteserver.seng.uvic.ca', function() {
+        client.connect(4444, 'quoteserve.seng.uvic.ca', function() {
             console.log('Connected');
             client.write(`${stockSymbol}, ${userId}`);
         });
