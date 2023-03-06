@@ -4,6 +4,11 @@ import { LogSystemEvent, TransactionMongo, TriggerMongo, UserMongo } from '../mo
 import { getQuote } from './getQuote';
 import {v4 as uuidv4} from 'uuid';
 
+/**
+ * This should really be a microService that isn't running in the transaction server specifically. 
+ * @param redisClient 
+ * @param mongoClient 
+ */
 export async function checkTriggers(redisClient: any, mongoClient: MongoClient) {
     const buyTriggers: TriggerMongo[] = await mongoClient.db("Transaction-Server").collection('Triggers').find({'trigger_type': "BUY"}).toArray() as any[];
     
