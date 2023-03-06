@@ -84,7 +84,7 @@ apiRouter.get('/QUOTE', async (req: Request, res: Response): Promise<void> => {
   const transactionNumber = transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'QUOTE',transactionNumber, {stockSymbol: data.stockSymbol, userId: data.userId});
   const amount = await getQuote(data.stockSymbol, data.userId, transactionNumber, redisClient, client);
-  res.json({price: amount});
+  res.json({success: true, price: amount.price});
 });
 
 apiRouter.post('/BUY', async (req: Request, res: Response): Promise<void> => {
@@ -108,7 +108,7 @@ apiRouter.post('/BUY', async (req: Request, res: Response): Promise<void> => {
   }
 
   const getQuoteResult = await getQuote(data.stockSymbol, data.userId, transactionNumber, redisClient, client);
-  user.pending_buy = {stock_name: data.stockSymbol, stock_price: getQuoteResult,amount_to_buy: data.amount, timestamp: Date.now()};
+  user.pending_buy = {stock_name: data.stockSymbol, stock_price: getQuoteResult.price,amount_to_buy: data.amount, timestamp: Date.now(), cryptoKey: getQuoteResult.cryptoKey};
   user.updated = Date.now();
 
   await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
@@ -177,6 +177,7 @@ apiRouter.post('/COMMIT_BUY', async (req: Request, res: Response): Promise<void>
     username: user.username,
     transaction_type: 'BUY',
     stock_symbol: user.pending_buy.stock_name,
+    cryptoKey: user.pending_buy.cryptoKey,
     user_id: user._id.toString(),
   }
   await client.db("Transaction-Server").collection('Transactions').insertOne(transaction);
@@ -267,7 +268,7 @@ apiRouter.post('/SELL', async (req: Request, res: Response): Promise<void> => {
   }
 
   const getQuoteResult = await getQuote(data.stockSymbol, data.userId, transactionNumber, redisClient, client);
-  const dollarAmountCurrentlyHeld = getQuoteResult * stock.amount;
+  const dollarAmountCurrentlyHeld = getQuoteResult.price * stock.amount;
 
   if(dollarAmountCurrentlyHeld < data.amount) {
     await logError(client, transactionNumber, 'SELL', {userId: data.userId, errorMessage: 'Requesting to sell more stock than you have in dollar amounts'})
@@ -275,7 +276,7 @@ apiRouter.post('/SELL', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  user.pending_sell = {stock_name: data.stockSymbol, stock_price: getQuoteResult, amount_to_sell: data.amount, timestamp: Date.now()};
+  user.pending_sell = {stock_name: data.stockSymbol, stock_price: getQuoteResult.price, amount_to_sell: data.amount, timestamp: Date.now(), cryptoKey: getQuoteResult.cryptoKey};
   user.updated = Date.now();
 
   await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
@@ -352,6 +353,7 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
     username: user.username,
     transaction_type: 'SELL',
     stock_symbol: user.pending_sell.stock_name,
+    cryptoKey: user.pending_sell.cryptoKey,
     user_id: user._id.toString(),
   }
   await client.db("Transaction-Server").collection('Transactions').insertOne(transaction);

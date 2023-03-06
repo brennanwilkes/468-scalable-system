@@ -10,7 +10,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
 
     const removeTriggerIds = [];
         for(const trigger of buyTriggers) {
-            const price = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
+            const {price, cryptoKey} = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {byPassRedis: true});
             if(price <= trigger.trigger_price){
                     let index: number;
                     const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
@@ -45,6 +45,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         username: userType.username,
                         transaction_type: 'BUY',
                         stock_symbol: trigger.stock_symbol,
+                        cryptoKey: cryptoKey,
                         user_id: userType._id.toString(),
                     }
                     const systemLog: Partial<LogSystemEvent> = {
@@ -78,7 +79,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
 
     const removeTriggerIdsSell = [];
         for(const trigger of sellTriggers) {
-            const price = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
+            const {price, cryptoKey }= await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
             if(price >= trigger.trigger_price){
                     let index: number;
                     const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
@@ -110,6 +111,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         username: userType.username,
                         transaction_type: 'SELL',
                         stock_symbol: trigger.stock_symbol,
+                        cryptoKey: cryptoKey,
                         user_id: userType._id.toString(),
                     }
                     const systemLog: Partial<LogSystemEvent> = {
