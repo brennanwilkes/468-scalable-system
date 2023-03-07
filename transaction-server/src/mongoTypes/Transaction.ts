@@ -8,6 +8,6 @@ export interface TransactionMongo {
     username: string;
     transaction_type: string;
     stock_symbol: string;
-    cryptokey: string;
+    cryptoKey: string
     user_id: string;
 }
