@@ -63,7 +63,7 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
 
 
             const returnResult = {price: parseFloat(returnedData[0]), cryptoKey: returnedData[4]};
-            await redisClient.set(returnedData[1], returnResult, {PX: 3_000}) //Sets Redis Key to expire in 3 seconds
+            await redisClient.set(returnedData[1], JSON.stringify(returnResult), {PX: 3_000}) //Sets Redis Key to expire in 3 seconds
             resolve(returnResult)
         })
     })
