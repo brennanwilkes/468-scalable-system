@@ -71,7 +71,7 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
     }
     await client.db("Transaction-Server").collection('Users').insertOne(newUser);
     await editAccount(client, data.userId, 'add', data.amount, transactionNumber);
-    res.json({response: `Account Created and Amount added to Account. Account holds ${newUser.account_balance}`});
+    res.json({response: `Account Created and Amount added to Account. Account holds ${data.amount}`});
   } else {
     await editAccount(client, data.userId, 'add', data.amount, transactionNumber);
     res.json({response: `Amount added to Account. Account now holds ${user.account_balance}`});

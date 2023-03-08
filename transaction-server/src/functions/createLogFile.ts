@@ -41,7 +41,7 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
                 quoteLogXml.ele('stockSymbol').txt(quoteLog.stockSymbol).up();
                 quoteLogXml.ele('username').txt(quoteLog.userId).up();
                 quoteLogXml.ele('quoteServerTime').txt(quoteLog.quoteServerTime.toString()).up();
-                quoteLogXml.ele('funds').txt(quoteLog.cryptokey.toString()).up();
+                quoteLogXml.ele('cryptokey').txt(quoteLog.cryptokey.toString()).up();
                 return;
             case 'Account':
                 const accountLog = log as LogAccountTransaction;

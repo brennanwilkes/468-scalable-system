@@ -25,10 +25,21 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
     return new Promise((resolve, reject) => {
         client.connect(4444, 'quoteserve.seng.uvic.ca', function() {
             console.log('Connected');
-            client.write(`${stockSymbol}, ${userId}`);
+            client.write(`${stockSymbol} ${userId}\n`, () => {
+                console.log('Data Sent');
+            }) ;
+        });
+
+        client.on('error', (err) => {
+            console.log(err);
+        });
+
+        client.on('close' , () => {
+            console.log('Connection Closed');
         });
     
         client.on('data', async (data) => {
+            console.log('Received: ' + data.toString());
             //[Quote, SYM, UserID, Timestamp, Cryptokey]
             const returnedData = data.toString().split(',')
 
