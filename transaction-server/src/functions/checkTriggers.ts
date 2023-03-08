@@ -4,13 +4,18 @@ import { LogSystemEvent, TransactionMongo, TriggerMongo, UserMongo } from '../mo
 import { getQuote } from './getQuote';
 import {v4 as uuidv4} from 'uuid';
 
+/**
+ * This should really be a microService that isn't running in the transaction server specifically. 
+ * @param redisClient 
+ * @param mongoClient 
+ */
 export async function checkTriggers(redisClient: any, mongoClient: MongoClient) {
     const buyTriggers: TriggerMongo[] = await mongoClient.db("Transaction-Server").collection('Triggers').find({'trigger_type': "BUY"}).toArray() as any[];
     
 
     const removeTriggerIds = [];
         for(const trigger of buyTriggers) {
-            const price = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
+            const {price, cryptoKey} = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {byPassRedis: true});
             if(price <= trigger.trigger_price){
                     let index: number;
                     const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
@@ -45,6 +50,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         username: userType.username,
                         transaction_type: 'BUY',
                         stock_symbol: trigger.stock_symbol,
+                        cryptoKey: cryptoKey,
                         user_id: userType._id.toString(),
                     }
                     const systemLog: Partial<LogSystemEvent> = {
@@ -78,7 +84,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
 
     const removeTriggerIdsSell = [];
         for(const trigger of sellTriggers) {
-            const price = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
+            const {price, cryptoKey }= await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
             if(price >= trigger.trigger_price){
                     let index: number;
                     const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
@@ -110,6 +116,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         username: userType.username,
                         transaction_type: 'SELL',
                         stock_symbol: trigger.stock_symbol,
+                        cryptoKey: cryptoKey,
                         user_id: userType._id.toString(),
                     }
                     const systemLog: Partial<LogSystemEvent> = {
