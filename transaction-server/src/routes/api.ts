@@ -378,7 +378,7 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
   user.updated = Date.now();
   await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
   await editAccount(client, data.userId, 'add', amount, transactionNumber);
-  res.json({success: true, response: `Stock purchased. You sold ${stockAmount} shares of ${stockName} stock for a total of \$${amountToSell}`});
+  res.json({success: true, response: `Stock sold. You sold ${stockAmount} shares of ${stockName} stock for a total of \$${amountToSell}`});
 });
 
 apiRouter.post('/CANCEL_SELL', async (req: Request, res: Response): Promise<void> => {
@@ -521,7 +521,7 @@ apiRouter.post('/CANCEL_SET_BUY', async (req: Request, res: Response): Promise<v
 apiRouter.post('/SET_BUY_TRIGGER', async (req: Request, res: Response): Promise<void> => {
   const data: SetBuyTriggerType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'SET_BUY_TRIGGER', transactionNumber, {stockSymbol: data.stockSymbol, funds: data.amount, });
+  await logUserCommand(client, 'SET_BUY_TRIGGER', transactionNumber, {userId: data.userId, stockSymbol: data.stockSymbol, funds: data.amount, });
   // Check if user has a reserve for that stock
 
   const user:UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -726,7 +726,7 @@ apiRouter.get('/DUMPLOG', async (req: Request, res: Response): Promise<void> => 
 apiRouter.get('/DISPLAY_SUMMARY',  async (req: Request, res: Response): Promise<void> => {
   const data: DisplaySummaryType = req.query as any;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'DUMPLOG', transactionNumber, {userId: data.userId});
+  await logUserCommand(client, 'DISPLAY_SUMMARY', transactionNumber, {userId: data.userId});
   //get all user data
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   const buyTriggers: TriggerMongo[] = (await client.db('Transaction-Server').collection('Triggers').find({user_id: user._id.toString(), type: 'BUY'}).toArray()) as any;

@@ -1,7 +1,7 @@
 import * as figlet from 'figlet'
 import {Command } from 'commander'
 import * as fs from 'fs'
-import path from 'path';
+import path, { parse } from 'path';
 import { createInterface } from 'readline';
 import axios from 'axios';
 
@@ -41,10 +41,46 @@ async function handleFile(filePath: string) {
         input: fileReadStream,
         crlfDelay: Infinity,
     })
-
+    const users: {index: number, userid: string}[] = []
+    const userCommands: string[][] = []
+    let dumpLogNonUser: string;
     for await (const line of rl) {
         const command = line.split(' ')[1]
-        await parseCommand(command)
+        if(command.split(',')[0] == 'DUMPLOG' && command.split(',')[2] == undefined) {
+            dumpLogNonUser = command
+        } else {
+            const user = users.find((user) => {
+                if(user.userid == command.split(',')[1]) {
+                    return true;
+                }
+                return false;
+            })
+
+            if(!user) {
+
+                const newUser = {
+                    index: users.length,
+                    userid: command.split(',')[1]
+                }
+                users.push(newUser);
+                userCommands.push([]);
+                userCommands[newUser.index].push(command);
+            } else {
+                userCommands[user.index].push(command)
+            }
+        }
+    }
+
+    await Promise.all(userCommands.map(async (userCommands) => {
+        await runUserCommands(userCommands);
+
+    }))
+    await parseCommand(dumpLogNonUser!);
+}
+
+async function runUserCommands(userCommands: string[]) {
+    for(const command of userCommands) {
+        await parseCommand(command);
     }
 }
 

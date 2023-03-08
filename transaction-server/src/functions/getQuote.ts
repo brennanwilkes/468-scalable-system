@@ -14,10 +14,10 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
     }
 
     if(!optional?.byPassRedis) {
-        const result: string = await redisClient.get(stockSymbol);
+        const result: {price: number, cryptoKey: string} = JSON.parse(await redisClient.get(stockSymbol));
         if(result) {
             //TODO: Log System Event: Quote from Cache -- maybe not 
-            return {price: parseFloat(result), cryptoKey: 'null'};
+            return result;
         }
     }
 
@@ -25,22 +25,15 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
 
     return new Promise((resolve, reject) => {
         client.connect(4444, 'quoteserve.seng.uvic.ca', function() {
-            console.log('Connected');
-            client.write(`${stockSymbol} ${userId}\n`, () => {
-                console.log('Data Sent');
-            }) ;
+            client.write(`${stockSymbol} ${userId}\n`) ;
         });
 
         client.on('error', (err) => {
             console.log(err);
         });
-
-        client.on('close' , () => {
-            console.log('Connection Closed');
-        });
     
         client.on('data', async (data) => {
-            console.log('Received: ' + data.toString());
+            console.log('Received: ' + data.toString() + ' for user ' + userId);
             //[Quote, SYM, UserID, Timestamp, Cryptokey]
             const returnedData = data.toString().split(',')
 
@@ -63,7 +56,7 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
 
 
             const returnResult = {price: parseFloat(returnedData[0]), cryptoKey: returnedData[4]};
-            await redisClient.set(returnedData[1], JSON.stringify(returnResult), {PX: 3_000}) //Sets Redis Key to expire in 3 seconds
+            await redisClient.set(returnedData[1], JSON.stringify(returnResult), {PX: 10_000}) //Sets Redis Key to expire in 10 seconds
             resolve(returnResult)
         })
     })

@@ -15,10 +15,10 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
 
     const removeTriggerIds = [];
         for(const trigger of buyTriggers) {
-            const {price, cryptoKey} = await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {byPassRedis: true});
+            const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
+            const {price, cryptoKey} = await getQuote(trigger.stock_symbol, userType.username, trigger.transactionNumber, redisClient, mongoClient);
             if(price <= trigger.trigger_price){
                     let index: number;
-                    const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
                     const reserve = userType.account_balance_reserves.find((reserve, i) => {
                         if(reserve.stock_name == trigger.stock_symbol) {
                             index = i;
@@ -26,6 +26,10 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         }
                         return false;
                     });
+                    if(!reserve) {
+                        removeTriggerIds.push(trigger._id);
+                        continue;
+                    }
                     let stockIndex: number; 
                     let stock = userType.stocks_owned.find((stock, i) => {
                         if(stock.stock_name == trigger.stock_symbol) {
@@ -35,7 +39,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         return false;
                     })
 
-                    const amountOfStock = reserve!.amount_in_reserve / price;
+                    const amountOfStock = reserve.amount_in_reserve / price;
                     if(stock) {
                         stock.amount += amountOfStock
                         userType.stocks_owned[stockIndex!] = stock;
@@ -84,10 +88,10 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
 
     const removeTriggerIdsSell = [];
         for(const trigger of sellTriggers) {
-            const {price, cryptoKey }= await getQuote(trigger.stock_symbol, trigger.user_id, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
+            const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
+            const {price, cryptoKey }= await getQuote(trigger.stock_symbol, userType.username, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
             if(price >= trigger.trigger_price){
                     let index: number;
-                    const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
                     const reserve = userType.stocks_owned_reserves.find((reserve, i) => {
                         if(reserve.stock_name == trigger.stock_symbol) {
                             index = i;
@@ -95,6 +99,11 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         }
                         return false;
                     });
+
+                    if(!reserve) {
+                        removeTriggerIdsSell.push(trigger._id);
+                        continue;
+                    }
                     let stockIndex: number; 
                     let stock = userType.stocks_owned.find((stock, i) => {
                         if(stock.stock_name == trigger.stock_symbol) {
@@ -104,8 +113,13 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                         return false;
                     })
 
-                    const amountOfMoney = reserve!.amount_in_reserve * price;
-                    stock!.amount -= reserve!.amount_in_reserve;
+                    if(!stock) {
+                        removeTriggerIdsSell.push(trigger._id);
+                        continue;
+                    }
+
+                    const amountOfMoney = reserve.amount_in_reserve * price;
+                    stock.amount -= reserve.amount_in_reserve;
                     userType.stocks_owned[stockIndex!] = stock!;
                     userType.account_balance += amountOfMoney;
 
