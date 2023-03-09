@@ -127,7 +127,7 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
     })
 
     const xml = doc.up().end({prettyPrint: true});
-    fs.writeFileSync(path.resolve(__dirname, '..' , `logs`, filename), xml)
-    return path.resolve(__dirname, `logs`, filename);
+    fs.writeFileSync(path.resolve(__dirname, '..' , `logs`, filename + '.xml'), xml)
+    return path.resolve(__dirname, `logs`, filename + '.xml');
 
 }
