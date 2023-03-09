@@ -48,6 +48,9 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
         client.on('data', async (data) => {
             console.log('Received: ' + data.toString() + ' for user ' + userId);
             //[Quote, SYM, UserID, Timestamp, Cryptokey]
+            // SYM and userId should be the same as the request, but the quote
+            // server is bad and returns stupid stuff so we don't log the 
+            // response values. 
             const returnedData = data.toString().split(',')
 
             if(!optional?.skipQuoteLog) {
@@ -58,9 +61,9 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
                 transactionNumber: transactionNumber,
                 timestamp: Date.now(),
                 type: 'Quote',
-                userId: returnedData[2],
+                userId: userId,
                 price: parseFloat(returnedData[0]),
-                stockSymbol: returnedData[1],
+                stockSymbol: stockSymbol,
                 quoteServerTime: parseInt(returnedData[3]),
                 cryptokey: returnedData[4]
             }
@@ -69,7 +72,7 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
 
 
             const returnResult = {price: parseFloat(returnedData[0]), cryptoKey: returnedData[4]};
-            await redisClient.set(returnedData[1], JSON.stringify(returnResult), {PX: 15_000}) //Sets Redis Key to expire in 15 seconds
+            await redisClient.set(stockSymbol, JSON.stringify(returnResult), {PX: 15_000}) //Sets Redis Key to expire in 15 seconds
             resolve(returnResult)
         })
     })
