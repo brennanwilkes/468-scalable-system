@@ -1,7 +1,7 @@
 import * as net from 'net';
 import { MongoClient } from 'mongodb';
 import {v4 as uuidv4} from 'uuid';
-import { LogQuoteServer } from '../mongoTypes';
+import { LogQuoteServer, LogSystemEvent } from '../mongoTypes';
 
 /**
  * Returns the latest quote for a certain symbol. Checks the redis
@@ -17,6 +17,19 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
         const result: {price: number, cryptoKey: string} = JSON.parse(await redisClient.get(stockSymbol));
         if(result) {
             //TODO: Log System Event: Quote from Cache -- maybe not 
+            const logCacheQuote: Partial<LogSystemEvent> = {
+                log_id: uuidv4(),
+                server: "Server1", //TODO: Replace with a unique server Name
+                transactionNumber: transactionNumber,
+                timestamp: Date.now(),
+                type: 'System',
+                command: 'Quote from Cache',
+                userId: userId,
+                stockSymbol: stockSymbol,
+                funds: result.price,
+            }
+
+            await mongoClient.db("Transaction-Server").collection('Logs').insertOne(logCacheQuote);
             return result;
         }
     }
@@ -56,7 +69,7 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
 
 
             const returnResult = {price: parseFloat(returnedData[0]), cryptoKey: returnedData[4]};
-            await redisClient.set(returnedData[1], JSON.stringify(returnResult), {PX: 10_000}) //Sets Redis Key to expire in 10 seconds
+            await redisClient.set(returnedData[1], JSON.stringify(returnResult), {PX: 15_000}) //Sets Redis Key to expire in 15 seconds
             resolve(returnResult)
         })
     })
