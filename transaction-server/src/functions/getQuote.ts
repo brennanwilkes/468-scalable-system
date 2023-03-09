@@ -23,7 +23,7 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
                 transactionNumber: transactionNumber,
                 timestamp: Date.now(),
                 type: 'System',
-                command: 'Quote from Cache',
+                command: 'QUOTE',
                 userId: userId,
                 stockSymbol: stockSymbol,
                 funds: result.price,
