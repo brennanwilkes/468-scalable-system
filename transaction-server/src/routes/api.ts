@@ -20,7 +20,10 @@ export const apiRouter: Router = express.Router();
 const uri = `mongodb://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_URL}:${process.env.MONGO_PORT}/?authMechanism=DEFAULT`;
 
 const client = new MongoClient(uri);
-client.connect();
+client.connect().then(async () => {
+  await client.db('Transaction-Server').collection('Logs').createIndex({timestamp: 1});
+  await client.db('Transaction-Server').collection('Logs').createIndex({timestamp: -1});
+})
 
 const redisClient = createClient({url: `redis://${process.env.REDIS_URL}:${process.env.REDIS_PORT}/0`});
 redisClient.connect();
@@ -44,6 +47,7 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
   const data: AddType = req.body;
   const transactionNumber = transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'ADD',  transactionNumber, {funds: data.amount, userId: data.userId});
+
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
