@@ -36,7 +36,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./
 
 # Expose the container's port 3000 for incoming traffic
-EXPOSE 3001
+EXPOSE 8000
 
 # Start the web server in the foreground when the container is run
 CMD ["node", "index.js"]

@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { LogUserCommand } from '../mongoTypes';
 import {v4 as uuidv4} from 'uuid';
+import os from 'os';
 
 /**
  * Logs a User Command and returns a transaction Number
@@ -18,7 +19,7 @@ export async function logUserCommand(dbConnection: MongoClient, command: string,
         log_id: uuidv4(),
         type: 'User',
         command: command,
-        server: "Server1", //TODO: Replace with a unique server Name
+        server: os.hostname(), //TODO: Replace with a unique server Name
         transactionNumber: transactionNumber,
         timestamp: Date.now(),
     }
