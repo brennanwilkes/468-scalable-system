@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import path, { parse } from 'path';
 import { createInterface } from 'readline';
 import axios from 'axios';
+import http from 'http';
 
 
 const program = new Command();
@@ -28,6 +29,9 @@ program.command('load-file <filePath>')
     })
 program.parse()
 
+const agent = new http.Agent({ keepAlive: true, maxFreeSockets: 1300})
+axios.defaults.httpAgent = agent;
+
 async function handleFile(filePath: string) {
     const filePathTrue = path.resolve(__dirname, filePath);
     if(!fs.existsSync(filePathTrue)) {
@@ -47,7 +51,9 @@ async function handleFile(filePath: string) {
     console.log('Parsing commands...')
     let count = 1;
     for await (const line of rl) {
-        console.log(`${count} commands parsed...`)
+        if(count % 10000 == 0) {
+            console.log(`${count} commands parsed...`)
+        }
         const command = line.split(' ')[1]
         if(command.split(',')[0] == 'DUMPLOG' && command.split(',')[2] == undefined) {
             dumpLogNonUser = command
