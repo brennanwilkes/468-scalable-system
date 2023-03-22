@@ -12,20 +12,24 @@ import { editAccount } from '../functions/editAccount';
 import { logError } from '../functions/logError';
 import { TransactionNumber } from '../classes/transactionNumber.class';
 import { checkTriggers } from '../functions/checkTriggers';
+import os from 'os';
 
 require('dotenv').config();
 
 export const apiRouter: Router = express.Router();
 
-const uri = `mongodb://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_URL}:${process.env.MONGO_PORT}/?authMechanism=DEFAULT`;
+const uri = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_URL}:${process.env.MONGO_PORT}/?authMechanism=DEFAULT`;
 
 const client = new MongoClient(uri);
-client.connect();
+client.connect().then(async () => {
+  await client.db('Transaction-Server').collection('Logs').createIndex({timestamp: 1});
+  await client.db('Transaction-Server').collection('Logs').createIndex({timestamp: -1});
+})
 
 const redisClient = createClient({url: `redis://${process.env.REDIS_URL}:${process.env.REDIS_PORT}/0`});
 redisClient.connect();
 
-checkTriggers(redisClient, client);
+checkTriggers(redisClient, client, true);
 
 const transactionNumberClass = new TransactionNumber();
 
@@ -35,15 +39,16 @@ apiRouter.get('/', async (req: Request, res: Response): Promise<void> => {
   
 
   console.log(await client.db('Transaction-Server').admin().listDatabases())
-  res.json({response: 'Hello, World!'});
+  res.json({response: 'Hello, World!. ' + os.hostname()});
 });
 
 //Commands in order of provided list https://www.ece.uvic.ca/~seng462/ProjectWebSite/Commands.html
 
 apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
   const data: AddType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'ADD',  transactionNumber, {funds: data.amount, userId: data.userId});
+
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   if(user == null) {
@@ -71,7 +76,7 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
     }
     await client.db("Transaction-Server").collection('Users').insertOne(newUser);
     await editAccount(client, data.userId, 'add', data.amount, transactionNumber);
-    res.json({response: `Account Created and Amount added to Account. Account holds ${newUser.account_balance}`});
+    res.json({response: `Account Created and Amount added to Account. Account holds ${data.amount}`});
   } else {
     await editAccount(client, data.userId, 'add', data.amount, transactionNumber);
     res.json({response: `Amount added to Account. Account now holds ${user.account_balance}`});
@@ -81,7 +86,7 @@ apiRouter.post('/ADD', async (req: Request, res: Response): Promise<void> => {
 
 apiRouter.get('/QUOTE', async (req: Request, res: Response): Promise<void> => {
   const data: QuoteType = req.query as any;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'QUOTE',transactionNumber, {stockSymbol: data.stockSymbol, userId: data.userId});
   const amount = await getQuote(data.stockSymbol, data.userId, transactionNumber, redisClient, client);
   res.json({success: true, price: amount.price});
@@ -91,7 +96,7 @@ apiRouter.post('/BUY', async (req: Request, res: Response): Promise<void> => {
   //Account must have enough money
   //Stage transaction temporarily in mongo, do not execute.
   const data: BuyType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'BUY',  transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -122,7 +127,7 @@ apiRouter.post('/COMMIT_BUY', async (req: Request, res: Response): Promise<void>
   //User must have a buy within previous 60 seconds - most recent
   //Account depletes, but stock added to account
   const data: CommitBuyType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'COMMIT_BUY', transactionNumber, {userId: data.userId});
   
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -184,7 +189,7 @@ apiRouter.post('/COMMIT_BUY', async (req: Request, res: Response): Promise<void>
 
   const systemLog: Partial<LogSystemEvent> = {
     log_id: uuidv4(),
-    server: "Server1", //TODO: Replace with a unique server Name
+    server: os.hostname(), //TODO: Replace with a unique server Name
     transactionNumber: transactionNumber,
     timestamp: Date.now(),
     type: 'System',
@@ -210,7 +215,7 @@ apiRouter.post('/CANCEL_BUY', async (req: Request, res: Response): Promise<void>
   //User must have a buy within previous 60 seconds - most recent
   //BUY is cancelled 
   const data: CancelBuyType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'CANCEL_BUY',  transactionNumber, {userId: data.userId});
   
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -245,7 +250,7 @@ apiRouter.post('/SELL', async (req: Request, res: Response): Promise<void> => {
   //User most hold enough stock
   //Save transaction temporarily in mongo, do not execute. 
   const data: SellType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'SELL', transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -291,7 +296,7 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
   //User must have a Sell within previous 60 seconds - most recent
   //Stock depletes, but account money increases
   const data: CommitSellType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'COMMIT_SELL', transactionNumber, {userId: data.userId});
   
 
@@ -360,7 +365,7 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
 
   const systemLog: Partial<LogSystemEvent> = {
     log_id: uuidv4(),
-    server: "Server1", //TODO: Replace with a unique server Name
+    server: os.hostname(), //TODO: Replace with a unique server Name
     transactionNumber: transactionNumber,
     timestamp: Date.now(),
     type: 'System',
@@ -378,14 +383,14 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
   user.updated = Date.now();
   await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
   await editAccount(client, data.userId, 'add', amount, transactionNumber);
-  res.json({success: true, response: `Stock purchased. You sold ${stockAmount} shares of ${stockName} stock for a total of \$${amountToSell}`});
+  res.json({success: true, response: `Stock sold. You sold ${stockAmount} shares of ${stockName} stock for a total of \$${amountToSell}`});
 });
 
 apiRouter.post('/CANCEL_SELL', async (req: Request, res: Response): Promise<void> => {
   //User must have a sell within previous 60 seconds - most recent
   //SELL is cancelled
   const data: CancelSellType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'CANCEL_SELL',transactionNumber, {userId: data.userId});
 
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -419,7 +424,7 @@ apiRouter.post('/CANCEL_SELL', async (req: Request, res: Response): Promise<void
 
 apiRouter.post('/SET_BUY_AMOUNT', async (req: Request, res: Response): Promise<void> => {
   const data: SetBuyAmountType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'SET_BUY_AMOUNT',  transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
   //Cash of user must be hihger than buy amount at transaction time
   //Creates a reserve
@@ -446,7 +451,7 @@ apiRouter.post('/SET_BUY_AMOUNT', async (req: Request, res: Response): Promise<v
 
   const systemLog: Partial<LogSystemEvent> = {
     log_id: uuidv4(),
-    server: "Server1", //TODO: Replace with a unique server Name
+    server: os.hostname(), //TODO: Replace with a unique server Name
     transactionNumber: transactionNumber,
     timestamp: Date.now(),
     type: 'System',
@@ -463,7 +468,7 @@ apiRouter.post('/SET_BUY_AMOUNT', async (req: Request, res: Response): Promise<v
 
 apiRouter.post('/CANCEL_SET_BUY', async (req: Request, res: Response): Promise<void> => {
   const data: CancelSetBuyType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'CANCEL_SET_BUY',  transactionNumber, {stockSymbol: data.stockSymbol, userId: data.userId});
   //Must havea set_buy for stock
   // Put reserves back into account
@@ -503,7 +508,7 @@ apiRouter.post('/CANCEL_SET_BUY', async (req: Request, res: Response): Promise<v
   await client.db("Transaction-Server").collection('Triggers').deleteMany({trigger_id: {$in: buyIdsToRemove}});
   const systemLog: Partial<LogSystemEvent> = {
     log_id: uuidv4(),
-    server: "Server1", //TODO: Replace with a unique server Name
+    server: os.hostname(), //TODO: Replace with a unique server Name
     transactionNumber: transactionNumber,
     timestamp: Date.now(),
     type: 'System',
@@ -520,8 +525,8 @@ apiRouter.post('/CANCEL_SET_BUY', async (req: Request, res: Response): Promise<v
 
 apiRouter.post('/SET_BUY_TRIGGER', async (req: Request, res: Response): Promise<void> => {
   const data: SetBuyTriggerType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'SET_BUY_TRIGGER', transactionNumber, {stockSymbol: data.stockSymbol, funds: data.amount, });
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
+  await logUserCommand(client, 'SET_BUY_TRIGGER', transactionNumber, {userId: data.userId, stockSymbol: data.stockSymbol, funds: data.amount, });
   // Check if user has a reserve for that stock
 
   const user:UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -555,7 +560,7 @@ apiRouter.post('/SET_BUY_TRIGGER', async (req: Request, res: Response): Promise<
 
 apiRouter.post('/SET_SELL_AMOUNT', async (req: Request, res: Response): Promise<void> => {
   const data: SetSellAmountType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'SET_SELL_AMOUNT', transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
 
 
@@ -599,7 +604,7 @@ apiRouter.post('/SET_SELL_AMOUNT', async (req: Request, res: Response): Promise<
 
   const systemLog: Partial<LogSystemEvent> = {
     log_id: uuidv4(),
-    server: "Server1", //TODO: Replace with a unique server Name
+    server: os.hostname(), //TODO: Replace with a unique server Name
     transactionNumber: transactionNumber,
     timestamp: Date.now(),
     type: 'System',
@@ -616,7 +621,7 @@ apiRouter.post('/SET_SELL_AMOUNT', async (req: Request, res: Response): Promise<
 
 apiRouter.post('/SET_SELL_TRIGGER', async (req: Request, res: Response): Promise<void> => {
   const data: SetSellTriggerType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'SET_SELL_TRIGGER', transactionNumber, {funds: data.amount, stockSymbol: data.stockSymbol, userId: data.userId});
   
   const user:UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
@@ -648,7 +653,7 @@ apiRouter.post('/SET_SELL_TRIGGER', async (req: Request, res: Response): Promise
 
 apiRouter.post('/CANCEL_SET_SELL', async (req: Request, res: Response): Promise<void> => {
   const data: CancelSetSellType = req.body;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   await logUserCommand(client, 'CANCEL_SET_SELL', transactionNumber, { stockSymbol: data.stockSymbol, userId: data.userId});
   // Must havea set_sell for stock
   // Put reserves back into account
@@ -688,7 +693,7 @@ apiRouter.post('/CANCEL_SET_SELL', async (req: Request, res: Response): Promise<
   await client.db("Transaction-Server").collection('Triggers').deleteMany({trigger_id: {$in: sellIdsToRemove}});
   const systemLog: Partial<LogSystemEvent> = {
     log_id: uuidv4(),
-    server: "Server1", //TODO: Replace with a unique server Name
+    server: os.hostname(), //TODO: Replace with a unique server Name
     transactionNumber: transactionNumber,
     timestamp: Date.now(),
     type: 'System',
@@ -705,7 +710,7 @@ apiRouter.post('/CANCEL_SET_SELL', async (req: Request, res: Response): Promise<
 
 apiRouter.get('/DUMPLOG', async (req: Request, res: Response): Promise<void> => {
   const data: DumplogType = req.query as any;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
   
   //check if supervisor
   // if not - return user history into a file
@@ -725,8 +730,8 @@ apiRouter.get('/DUMPLOG', async (req: Request, res: Response): Promise<void> => 
 
 apiRouter.get('/DISPLAY_SUMMARY',  async (req: Request, res: Response): Promise<void> => {
   const data: DisplaySummaryType = req.query as any;
-  const transactionNumber = transactionNumberClass.getTransactionNumber();
-  await logUserCommand(client, 'DUMPLOG', transactionNumber, {userId: data.userId});
+  const transactionNumber = await transactionNumberClass.getTransactionNumber();
+  await logUserCommand(client, 'DISPLAY_SUMMARY', transactionNumber, {userId: data.userId});
   //get all user data
   const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
   const buyTriggers: TriggerMongo[] = (await client.db('Transaction-Server').collection('Triggers').find({user_id: user._id.toString(), type: 'BUY'}).toArray()) as any;

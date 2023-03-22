@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { LogErrorEvent } from '../mongoTypes';
 import {v4 as uuidv4} from 'uuid';
+import os from 'os';
 
 /**
  * Logs an ErrorEvent
@@ -19,7 +20,7 @@ export async function logError(client: MongoClient, transactionNumer: number, co
         log_id: uuidv4(),
         type: 'Error',
         command: command,
-        server: "Server1", //TODO: Replace with a unique server Name
+        server: os.hostname(), //TODO: Replace with a unique server Name
         transactionNumber: transactionNumer,
         timestamp: Date.now(),
     }

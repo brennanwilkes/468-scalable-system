@@ -18,7 +18,7 @@ app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Page not found!' });
 });
 
-const port: number | string = process.env.PORT || 3001;
+const port =  8000;
 
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
