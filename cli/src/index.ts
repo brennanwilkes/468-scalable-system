@@ -5,11 +5,16 @@ import path, { parse } from 'path';
 import { createInterface } from 'readline';
 import axios from 'axios';
 import http from 'http';
+import cluster from 'cluster';
+const numCPUs = 4;
 
 
 const program = new Command();
 
 const url = 'localhost:5001';
+const agent = new http.Agent({ keepAlive: true, maxFreeSockets: 1300})
+axios.defaults.httpAgent = agent;
+if(cluster.isPrimary) {
 console.log(figlet.textSync("Transaction Server CLI"));
 
 program
@@ -29,63 +34,94 @@ program.command('load-file <filePath>')
     })
 program.parse()
 
-const agent = new http.Agent({ keepAlive: true, maxFreeSockets: 1300})
-axios.defaults.httpAgent = agent;
+
 
 async function handleFile(filePath: string) {
-    const filePathTrue = path.resolve(__dirname, filePath);
-    if(!fs.existsSync(filePathTrue)) {
-        console.error(`File not found at ${filePathTrue}. Are you sure that ${filePath} is correct?`)
-        return;
-    }
-    console.log('File found. Reading...')
-    const fileReadStream = fs.createReadStream(filePathTrue);
-
-    const rl = createInterface({
-        input: fileReadStream,
-        crlfDelay: Infinity,
-    })
-    const users: {index: number, userid: string}[] = []
-    const userCommands: string[][] = []
-    let dumpLogNonUser: string;
-    console.log('Parsing commands...')
-    let count = 1;
-    for await (const line of rl) {
-        if(count % 10000 == 0) {
-            console.log(`${count} commands parsed...`)
+        const filePathTrue = path.resolve(__dirname, filePath);
+        if(!fs.existsSync(filePathTrue)) {
+            console.error(`File not found at ${filePathTrue}. Are you sure that ${filePath} is correct?`)
+            return;
         }
-        const command = line.split(' ')[1]
-        if(command.split(',')[0] == 'DUMPLOG' && command.split(',')[2] == undefined) {
-            dumpLogNonUser = command
-        } else {
-            const user = users.find((user) => {
-                if(user.userid == command.split(',')[1]) {
-                    return true;
-                }
-                return false;
-            })
+        console.log('File found. Reading...')
+        const fileReadStream = fs.createReadStream(filePathTrue);
 
-            if(!user) {
-
-                const newUser = {
-                    index: users.length,
-                    userid: command.split(',')[1]
-                }
-                users.push(newUser);
-                userCommands.push([]);
-                userCommands[newUser.index].push(command);
-            } else {
-                userCommands[user.index].push(command)
+        const rl = createInterface({
+            input: fileReadStream,
+            crlfDelay: Infinity,
+        })
+        const users: {index: number, userid: string}[] = []
+        const userCommands: string[][] = []
+        let dumpLogNonUser: string;
+        console.log('Parsing commands...')
+        let count = 1;
+        for await (const line of rl) {
+            if(count % 10000 == 0) {
+                console.log(`${count} commands parsed...`)
             }
+            const command = line.split(' ')[1]
+            if(command.split(',')[0] == 'DUMPLOG' && command.split(',')[2] == undefined) {
+                dumpLogNonUser = command
+            } else {
+                const user = users.find((user) => {
+                    if(user.userid == command.split(',')[1]) {
+                        return true;
+                    }
+                    return false;
+                })
+
+                if(!user) {
+
+                    const newUser = {
+                        index: users.length,
+                        userid: command.split(',')[1]
+                    }
+                    users.push(newUser);
+                    userCommands.push([]);
+                    userCommands[newUser.index].push(command);
+                } else {
+                    userCommands[user.index].push(command)
+                }
+            }
+            count += 1;
         }
-        count += 1;
-    }
 
-    await Promise.all(userCommands.map(async (userCommands) => {
-        await runUserCommands(userCommands);
+        console.log('Commands parsed. Forking workers...')
+        const usersPerGroup = Math.ceil(userCommands.length / numCPUs);
+        const userGroups = [];
+        for(let i = 0; i < numCPUs; i++) {
+            userGroups.push(userCommands.slice(i * usersPerGroup, (i + 1) * usersPerGroup))
+        }
+    
+        for (let i = 0; i < numCPUs; i++) {
+            console.log(`Forking worker ${i}. Worker ${i} has ${userGroups[i].length} users...`)
+            const worker = cluster.fork();
+            worker.send({ userGroup: userGroups[i] });
+          }
+        
+        let processedCount = 0;
+        cluster.on('message', async (worker, message) => {
+            if (message.type === 'processed') {
+              processedCount++;
+              if (processedCount === numCPUs) {
+                console.log('All commands processed successfully. Getting DUMPLOG...');
+                await parseCommand(dumpLogNonUser!);
+                console.log('DUMPLOG complete. Exiting...')
+                process.exit(0);
+              }
+            }
+            })
+        
+}
+} else {
+    process.on('message', async (message: any) => {
+        const userGroup: any = message.userGroup;
+        await Promise.all(userGroup.map(async (userCommands: any) => {
+            await runUserCommands(userCommands);
 
-    }))
-    await parseCommand(dumpLogNonUser!);
+        }))
+        process.send!({ type: 'processed' });
+    })
+    
 }
 
 async function runUserCommands(userCommands: string[]) {

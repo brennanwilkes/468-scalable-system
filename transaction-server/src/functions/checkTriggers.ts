@@ -3,13 +3,20 @@ import { MongoClient, ObjectId } from 'mongodb';
 import { LogSystemEvent, TransactionMongo, TriggerMongo, UserMongo } from '../mongoTypes';
 import { getQuote } from './getQuote';
 import {v4 as uuidv4} from 'uuid';
+import os, { hostname } from 'os';
 
 /**
  * This should really be a microService that isn't running in the transaction server specifically. 
  * @param redisClient 
  * @param mongoClient 
  */
-export async function checkTriggers(redisClient: any, mongoClient: MongoClient) {
+export async function checkTriggers(redisClient: any, mongoClient: MongoClient, start: boolean) {
+    if(start) {
+        const startVal = await redisClient.incr('checkTrigger');
+        if(startVal > 1) {
+            return;
+        }
+    }
     const buyTriggers: TriggerMongo[] = await mongoClient.db("Transaction-Server").collection('Triggers').find({'trigger_type': "BUY"}).toArray() as any[];
     
 
@@ -59,7 +66,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                     }
                     const systemLog: Partial<LogSystemEvent> = {
                         log_id: uuidv4(),
-                        server: "Server1",
+                        server: os.hostname(),
                         transactionNumber: trigger.transactionNumber,
                         timestamp: Date.now(),
                         type: 'System',
@@ -135,7 +142,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
                     }
                     const systemLog: Partial<LogSystemEvent> = {
                         log_id: uuidv4(),
-                        server: "Server1",
+                        server: os.hostname(),
                         transactionNumber: trigger.transactionNumber,
                         timestamp: Date.now(),
                         type: 'System',
@@ -159,6 +166,6 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient) 
         }
     await mongoClient.db("Transaction-Server").collection('Triggers').deleteMany({_id: {$in: removeTriggerIdsSell}});
     setTimeout(() => {
-        checkTriggers(redisClient, mongoClient)
-    }, 1000)
+        checkTriggers(redisClient, mongoClient, false)
+    }, 5000)
 }

@@ -29,7 +29,7 @@ client.connect().then(async () => {
 const redisClient = createClient({url: `redis://${process.env.REDIS_URL}:${process.env.REDIS_PORT}/0`});
 redisClient.connect();
 
-checkTriggers(redisClient, client);
+checkTriggers(redisClient, client, true);
 
 const transactionNumberClass = new TransactionNumber();
 
