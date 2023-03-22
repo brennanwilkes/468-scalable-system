@@ -44,7 +44,10 @@ async function handleFile(filePath: string) {
     const users: {index: number, userid: string}[] = []
     const userCommands: string[][] = []
     let dumpLogNonUser: string;
+    console.log('Parsing commands...')
+    let count = 1;
     for await (const line of rl) {
+        console.log(`${count} commands parsed...`)
         const command = line.split(' ')[1]
         if(command.split(',')[0] == 'DUMPLOG' && command.split(',')[2] == undefined) {
             dumpLogNonUser = command
@@ -69,6 +72,7 @@ async function handleFile(filePath: string) {
                 userCommands[user.index].push(command)
             }
         }
+        count += 1;
     }
 
     await Promise.all(userCommands.map(async (userCommands) => {
