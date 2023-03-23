@@ -1,17 +1,29 @@
 import {FindCursor, WithId, Document } from 'mongodb';
 import { LogAccountTransaction, LogDebugEvent, LogErrorEvent, LogMongo, LogQuoteServer, LogSystemEvent, LogUserCommand } from '../mongoTypes';
-import {create} from 'xmlbuilder2';
+import {create, createCB} from 'xmlbuilder2';
 import * as fs from 'fs'
 import path from 'path';
 
 export async function createLogFile(filename: string, MongoData: FindCursor<WithId<Document>>) {
-    const doc = create().ele('log');
+    const ws = fs.createWriteStream(path.resolve(__dirname, '..' , `logs`, filename + '.xml'));
+      
+    const xml = createCB({
+        data: (text: any) => {
+          ws.write(text);
+        }, prettyPrint: true});
+
+    xml.on('end', () => {
+        ws.end();
+        ws.close();
+    });
+
+    xml.dec().ele('log');
 
     await MongoData.forEach((log) => {
         switch(log.type){
             case 'User':
                 const userLog = log as LogUserCommand;
-                const userLogXml = doc.ele('userCommand');
+                const userLogXml = xml.ele('userCommand');
 
                 userLogXml.ele('timestamp').txt(userLog.timestamp.toString()).up();
                 userLogXml.ele('server').txt(userLog.server).up();
@@ -29,10 +41,11 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
                 if(userLog.funds) {
                     userLogXml.ele('funds').txt(userLog.funds.toString()).up();
                 }
+                userLogXml.up();
                 return;
             case 'Quote':
                 const quoteLog = log as LogQuoteServer;
-                const quoteLogXml = doc.ele('quoteServer');
+                const quoteLogXml = xml.ele('quoteServer');
 
                 quoteLogXml.ele('timestamp').txt(quoteLog.timestamp.toString()).up();
                 quoteLogXml.ele('server').txt(quoteLog.server).up();
@@ -42,10 +55,11 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
                 quoteLogXml.ele('username').txt(quoteLog.userId).up();
                 quoteLogXml.ele('quoteServerTime').txt(quoteLog.quoteServerTime.toString()).up();
                 quoteLogXml.ele('cryptokey').txt(quoteLog.cryptokey.toString()).up();
+                quoteLogXml.up();
                 return;
             case 'Account':
                 const accountLog = log as LogAccountTransaction;
-                const accountLogXml = doc.ele('accountTransaction');
+                const accountLogXml = xml.ele('accountTransaction');
 
                 accountLogXml.ele('timestamp').txt(accountLog.timestamp.toString()).up();
                 accountLogXml.ele('server').txt(accountLog.server).up();
@@ -53,10 +67,11 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
                 accountLogXml.ele('action').txt(accountLog.action).up();
                 accountLogXml.ele('username').txt(accountLog.userId).up();
                 accountLogXml.ele('funds').txt(accountLog.funds.toString()).up();
+                accountLogXml.up();
                 return;
             case 'System':
                 const systemLog = log as LogSystemEvent;
-                const systemLogXml = doc.ele('systemEvent');
+                const systemLogXml = xml.ele('systemEvent');
 
                 systemLogXml.ele('timestamp').txt(systemLog.timestamp.toString()).up();
                 systemLogXml.ele('server').txt(systemLog.server).up();
@@ -74,10 +89,11 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
                 if(systemLog.funds) {
                     systemLogXml.ele('funds').txt(systemLog.funds.toString()).up();
                 }
+                systemLogXml.up();
                 return;
             case 'Error':
                 const errorLog = log as LogErrorEvent;
-                const errorLogXml = doc.ele('errorEvent');
+                const errorLogXml = xml.ele('errorEvent');
 
                 errorLogXml.ele('timestamp').txt(errorLog.timestamp.toString()).up();
                 errorLogXml.ele('server').txt(errorLog.server).up();
@@ -98,10 +114,11 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
                 if(errorLog.errorMessage) {
                     errorLogXml.ele('errorMessage').txt(errorLog.errorMessage).up();
                 }
+                errorLogXml.up();
                 return;
             case 'Debug':
                 const debugLog = log as LogDebugEvent;
-                const debugLogXml = doc.ele('debugEvent');
+                const debugLogXml = xml.ele('debugEvent');
 
                 debugLogXml.ele('timestamp').txt(debugLog.timestamp.toString()).up();
                 debugLogXml.ele('server').txt(debugLog.server).up();
@@ -122,12 +139,11 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
                 if(debugLog.debugMessage) {
                     debugLogXml.ele('debugMessage').txt(debugLog.debugMessage).up();
                 }
+                debugLogXml.up();
                 return;
         }
     })
-
-    const xml = doc.up().end({prettyPrint: true});
-    fs.writeFileSync(path.resolve(__dirname, '..' , `logs`, filename + '.xml'), xml)
+    xml.up().end();
     return path.resolve(__dirname, `logs`, filename + '.xml');
 
 }

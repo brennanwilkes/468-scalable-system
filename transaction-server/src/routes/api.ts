@@ -19,7 +19,6 @@ require('dotenv').config();
 export const apiRouter: Router = express.Router();
 
 const uri = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_URL}:${process.env.MONGO_PORT}/?authMechanism=DEFAULT`;
-
 const client = new MongoClient(uri);
 client.connect().then(async () => {
   await client.db('Transaction-Server').collection('Logs').createIndex({timestamp: 1});
