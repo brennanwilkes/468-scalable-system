@@ -10,7 +10,7 @@ export async function createLogFile(filename: string, MongoData: FindCursor<With
     const xml = createCB({
         data: (text: any) => {
           ws.write(text);
-        }, prettyPrint: true});
+        }, prettyPrint: false});
 
     xml.on('end', () => {
         ws.end();
