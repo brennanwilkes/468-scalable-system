@@ -1,0 +1,49 @@
+.mobile-nav{
+  position: fixed;
+  width: 100vw;
+  bottom: 0;
+  background-color: #161D2C;
+  justify-content: center;
+  flex: 1;
+
+  align-self: flex-start;
+
+  padding: 1rem 3rem;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+}
+
+
+.mobile-items{
+  display: flex;
+  list-style: none;
+  flex: 1;
+  padding: 0 2rem;
+
+  justify-content: space-around;
+}
+
+
+.mobile-item{
+  padding: 0 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #4B566D; 
+  font-size: 1.2rem;
+}
+
+.link {
+  color: #4B566D;
+}
+
+/* Specific styles for active links */
+.link-active {
+  color: #ffffff;
+}
+
