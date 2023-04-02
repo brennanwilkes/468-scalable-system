@@ -1,54 +1,192 @@
-version: '3.3'
-
-services:
-  redis:
-    build:
-      context: ./caching
-      dockerfile: Dockerfile
-    # ports:
-    #   - "6379:6379"
-    networks:
-      - mynetwork
-
-  mongodb:
-    build:
-      context: ./database
-      dockerfile: Dockerfile
-    # ports:
-    #   - "27017:27017"
-    # volumes:
-    #   - ./mongod-keyfile-dev:/etc/mongod-keyfile
-
-    networks:
-      - mynetwork
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    networks:
-      - mynetwork
-
-  transaction-server:
-    build:
-      context: ./transaction-server
-      dockerfile: Dockerfile
-    # ports:
-    #   - "3001:3001"
-    networks:
-      - mynetwork
-
-  webserver:
-    build:
-      context: ./webserver
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3000"
-    networks:
-      - mynetwork
+version: '3.5'
 
 networks:
-  mynetwork:
-    driver: bridge
+  servers:
+  databases:
+
+services:
+  nginx:
+    build:
+      context: ./nginx/
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo
+      - redis
+      - transaction-server-api-1
+      - transaction-server-api-2
+      - transaction-server-api-3
+    ports:
+      - "127.0.0.1:5001:5001"
+    restart: always
+    networks:
+      - servers
+
+  mongo:
+    container_name: mongo
+    image: mongo:3.5
+    restart: always
+    environment:
+       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    ports:
+      - 127.0.0.1:27017:27017
+    networks: 
+      - databases
+
+  redis:
+    container_name: redis
+    image: redis:7.0.4-alpine
+    restart: always
+    ports:
+      - 127.0.0.1:6379:6379
+    command: redis-server --loglevel warning
+    networks: 
+      - databases
+
+  transaction-server-api-1:
+    container_name: transaction-server-api-1
+    image: transaction-server-api
+    build: ./transaction-server
+    env_file:
+    - .env
+    depends_on:
+      - mongo
+      - redis
+    networks: 
+      - databases
+      - servers
+  transaction-server-api-2:
+    container_name: transaction-server-api-2
+    image: transaction-server-api
+    build: ./transaction-server
+    env_file:
+    - .env
+    depends_on:
+      - mongo
+      - redis
+    networks: 
+      - databases
+      - servers
+  transaction-server-api-3:
+    container_name: transaction-server-api-3
+    image: transaction-server-api
+    build: ./transaction-server
+    env_file:
+    - .env
+    depends_on:
+      - mongo
+      - redis
+    networks: 
+      - databases
+      - servers
+  transaction-server-api-4:
+    container_name: transaction-server-api-4
+    image: transaction-server-api
+    build: ./transaction-server
+    env_file:
+    - .env
+    depends_on:
+      - mongo
+      - redis
+    networks: 
+      - databases
+      - servers
+  # transaction-server-api-5:
+  #   container_name: transaction-server-api-5
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-6:
+  #   container_name: transaction-server-api-6
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-7:
+  #   container_name: transaction-server-api-7
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-8:
+  #   container_name: transaction-server-api-8
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-9:
+  #   container_name: transaction-server-api-9
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-10:
+  #   container_name: transaction-server-api-10
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-11:
+  #   container_name: transaction-server-api-11
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-12:
+  #   container_name: transaction-server-api-12
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+volumes:
+  redis:
+    driver: local

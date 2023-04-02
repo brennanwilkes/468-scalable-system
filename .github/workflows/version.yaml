@@ -16,11 +16,11 @@ jobs:
 
       - name: Get Previous Tag
         id: get_prev_tag
-        run: echo "::set-output name=prev_tag::$(git describe --abbrev=0 --tags)"
+        run: echo "prev_tag=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
 
       - name: Get Next Tag
         id: get_next_tag
-        run: echo "::set-output name=next_tag::$(echo ${{ steps.get_prev_tag.outputs.prev_tag }} | awk -F '.' '{print $1"."$2"."$3+1}')"
+        run: echo "next_tag=$(echo ${{ steps.get_prev_tag.outputs.prev_tag }} | awk -F '.' '{print $1"."$2"."$3+1}')" >> $GITHUB_OUTPUT
 
       - name: Create Tag
         run: |
