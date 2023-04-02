@@ -4,6 +4,14 @@ import {create, createCB} from 'xmlbuilder2';
 import * as fs from 'fs'
 import path from 'path';
 
+/**
+ * This function creates a log file from the data in the database. It will create a file with the name of the filename parameter.
+ * It will then write the data from the database to the file. Saves it locally to be sent to the front end later.  
+ * 
+ * @param filename 
+ * @param MongoData 
+ * @returns 
+ */
 export async function createLogFile(filename: string, MongoData: FindCursor<WithId<Document>>) {
     const ws = fs.createWriteStream(path.resolve(__dirname, '..' , `logs`, filename + '.xml'));
       

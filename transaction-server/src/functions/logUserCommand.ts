@@ -4,7 +4,7 @@ import {v4 as uuidv4} from 'uuid';
 import os from 'os';
 
 /**
- * Logs a User Command and returns a transaction Number
+ * Logs a User Command
  * @param dbConnection 
  */
 export async function logUserCommand(dbConnection: MongoClient, command: string, transactionNumber: number, optionalParams?: {
@@ -19,7 +19,7 @@ export async function logUserCommand(dbConnection: MongoClient, command: string,
         log_id: uuidv4(),
         type: 'User',
         command: command,
-        server: os.hostname(), //TODO: Replace with a unique server Name
+        server: os.hostname(),
         transactionNumber: transactionNumber,
         timestamp: Date.now(),
     }

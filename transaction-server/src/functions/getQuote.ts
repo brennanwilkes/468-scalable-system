@@ -11,17 +11,18 @@ require('dotenv').config()
  * @param stockSymbol Symbol of the Stock to get a quote of
  */
 export async function getQuote(stockSymbol: string, userId: string, transactionNumber: number, redisClient: any, mongoClient: MongoClient, optional?: {byPassRedis?: boolean, skipQuoteLog?: boolean}): Promise<{price: number, cryptoKey: string}> {
+    // Allows the quote server to be bypassed for testing purposes
     if(process.env.DISABLE_QUOTE_SOCKET == 'true') {
         return {price: 1, cryptoKey: `test-uuid: ${uuidv4()}`};
     }
 
+    // Provides the option to bypass the redis cache
     if(!optional?.byPassRedis) {
         const result: {price: number, cryptoKey: string} = JSON.parse(await redisClient.get(stockSymbol));
         if(result) {
-            //TODO: Log System Event: Quote from Cache -- maybe not 
             const logCacheQuote: Partial<LogSystemEvent> = {
                 log_id: uuidv4(),
-                server: os.hostname(), //TODO: Replace with a unique server Name
+                server: os.hostname(),
                 transactionNumber: transactionNumber,
                 timestamp: Date.now(),
                 type: 'System',
@@ -36,8 +37,8 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
         }
     }
 
+    // Makes a request to the quote server. Only works if in the lab room. 
     var client = new net.Socket();
-
     return new Promise((resolve, reject) => {
         client.connect(4444, 'quoteserve.seng.uvic.ca', function() {
             client.write(`${stockSymbol} ${userId}\n`) ;
@@ -59,7 +60,7 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
                             //Log Quote
             const logQuote: Partial<LogQuoteServer> = {
                 log_id: uuidv4(),
-                server: os.hostname(), //TODO: Replace with a unique server Name
+                server: os.hostname(),
                 transactionNumber: transactionNumber,
                 timestamp: Date.now(),
                 type: 'Quote',

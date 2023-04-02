@@ -8,12 +8,13 @@ import http from 'http';
 import cluster from 'cluster';
 const numCPUs = 4;
 
-
+//Sets up the command line interface
 const program = new Command();
 
 const url = 'localhost:5001';
 const agent = new http.Agent({ keepAlive: true, maxFreeSockets: 1300})
 axios.defaults.httpAgent = agent;
+// Indicates whether or not the command line interface is running in a worker process
 if(cluster.isPrimary) {
 console.log(figlet.textSync("Transaction Server CLI"));
 
@@ -21,12 +22,14 @@ program
     .version("1.0.0")
     .description("CLI to run commands against the transaction server. Optionally can load a file of commands formatted correctly.")
 
+// Allows the user to run a single command
 program.command('run <command>')
     .alias('r')
     .action((argument) => {
         parseCommand(argument);
     })
 
+// Allows the user to load a file of commands
 program.command('load-file <filePath>')
     .alias('f')
     .action((argument) => {
@@ -35,7 +38,8 @@ program.command('load-file <filePath>')
 program.parse()
 
 
-
+/**Parses a file of commands. Splits the file into user groups and forks workers to handle each group.
+ */
 async function handleFile(filePath: string) {
         const filePathTrue = path.resolve(__dirname, filePath);
         if(!fs.existsSync(filePathTrue)) {
@@ -113,6 +117,7 @@ async function handleFile(filePath: string) {
         
 }
 } else {
+    // Worker process to handle processing their user group
     process.on('message', async (message: any) => {
         const userGroup: any = message.userGroup;
         await Promise.all(userGroup.map(async (userCommands: any) => {
@@ -123,13 +128,14 @@ async function handleFile(filePath: string) {
     })
     
 }
-
+// Runs all of the commands for a single user
 async function runUserCommands(userCommands: string[]) {
     for(const command of userCommands) {
         await parseCommand(command);
     }
 }
 
+// Parses a single command and sends it to the transaction server
 async function parseCommand(command: string) {
     //console.log(command);
     let args = command.split(',');
@@ -248,11 +254,20 @@ async function parseCommand(command: string) {
             return;
         case 'DUMPLOG':
             let dumplogResponse;
+            let filename;
             if(args.length > 1) {
-                dumplogResponse = await axios.get(`http://${url}/api/DUMPLOG?userId=${args[0]}&fileName=${args[1]}`);
+                filename = args[1];
+                dumplogResponse = await axios.get(`http://${url}/api/DUMPLOG?userId=${args[0]}&fileName=${args[1]}`, {responseType: 'arraybuffer'});
             } else {
-                dumplogResponse = await axios.get(`http://${url}/api/DUMPLOG?fileName=${args[0]}`);
+                filename = args[0];
+                dumplogResponse = await axios.get(`http://${url}/api/DUMPLOG?fileName=${args[0]}`, {responseType: 'arraybuffer'});
             }
+
+            //write code to save arraybuffer to file 
+            fs.appendFileSync(`./${filename}.xml`, Buffer.from(dumplogResponse.data))
+
+
+
             //console.log(dumplogResponse.data);
             return;
         case 'DISPLAY_SUMMARY':

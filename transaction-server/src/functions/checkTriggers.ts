@@ -3,12 +3,19 @@ import { MongoClient, ObjectId } from 'mongodb';
 import { LogSystemEvent, TransactionMongo, TriggerMongo, UserMongo } from '../mongoTypes';
 import { getQuote } from './getQuote';
 import {v4 as uuidv4} from 'uuid';
-import os, { hostname } from 'os';
+import os from 'os';
 
 /**
- * This should really be a microService that isn't running in the transaction server specifically. 
- * @param redisClient 
- * @param mongoClient 
+ * A function that acts as a seperate service. It checks the triggers and executes them if they are met.
+ * Not all transaction servers handle this, so if start is true (which is only true when the server starts up), it
+ * will check if another server is already handling this. This is determined by redis. If another server is already
+ * handling this, it will return. If not, it will increment the value in redis to 1.
+ * 
+ * It will then get all the buy and sell triggers from the database and check if they are met. If they are, it will execute the trigger 
+ * and remove it from the databse. If not, it will continue to the next trigger. This function continually loops. 
+ * @param redisClient - redis client
+ * @param mongoClient  - mongo client
+ * @param start - if this is the first time the function is being called
  */
 export async function checkTriggers(redisClient: any, mongoClient: MongoClient, start: boolean) {
     if(start) {
@@ -21,6 +28,7 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient, 
     
 
     const removeTriggerIds = [];
+        // Check all buy triggers
         for(const trigger of buyTriggers) {
             const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
             const {price, cryptoKey} = await getQuote(trigger.stock_symbol, userType.username, trigger.transactionNumber, redisClient, mongoClient);
@@ -90,10 +98,11 @@ export async function checkTriggers(redisClient: any, mongoClient: MongoClient, 
             
         }
     await mongoClient.db("Transaction-Server").collection('Triggers').deleteMany({_id: {$in: removeTriggerIds}});
-
+    
     const sellTriggers: TriggerMongo[] = await mongoClient.db("Transaction-Server").collection('Triggers').find({'trigger_type': "SELL"}).toArray() as any;
 
     const removeTriggerIdsSell = [];
+        //Check all sell triggers
         for(const trigger of sellTriggers) {
             const userType: UserMongo = await mongoClient.db("Transaction-Server").collection('Users').findOne({_id: new ObjectId(trigger.user_id)}) as any;
             const {price, cryptoKey }= await getQuote(trigger.stock_symbol, userType.username, trigger.transactionNumber, redisClient, mongoClient, {skipQuoteLog: true});
