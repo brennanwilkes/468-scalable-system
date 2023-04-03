@@ -1,28 +1,10 @@
 import React, { useState } from "react";
-import styled from "styled-components";
 import { FaHistory, FaUserAlt, FaChartLine } from "react-icons/fa";
 import "./Home.css";
 import Stock from "./Stock";
 import Navbar from "../Components/Navbar";
 import TextField from "@mui/material/TextField";
-import PropTypes from 'prop-types';
 
-const HomeContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const SearchContainer = styled.div`
-  display: flex;
-  margin: 1rem;
-`;
-
-const StocksList = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
 
 function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,44 +36,40 @@ function Home() {
   };
 
   return (
-    <HomeContainer>
+
+
+    <div className="home">
       <Navbar />
-      <SearchContainer>
-        <TextField
-          className="search"
-          placeholder="Search Stocks"
-          value={searchQuery}
-          onChange={handleSearch}
-          sx={{
-            'width': '80%',
-            'flexDirection': 'column',
-            'alignItems': 'stretch',
-            'display': 'flex',
-            "& .MuiInputBase-root": {
-              "borderRadius": "50px",
-            }
-          }}
-          key="search-input"
-        />
-      </SearchContainer>
-      <StocksList>
+
+      <div className="search-container">
+        <TextField className="search" value={searchQuery} onChange={handleSearch} placeholder="Search Stocks" sx={{
+          'width': '80%',
+          'flexDirection': 'column',
+          'alignItems': 'stretch',
+          'display': 'flex',
+          'marginLeft': '1rem',
+          'marginRight': '1rem',
+          'marginTop': '1rem',
+          'marginBottom': '1rem',
+          "& .MuiInputBase-root": {
+            "borderRadius": "50px",
+          }
+        }} />
+      </div>
+      <div className="stocks-list">
+
         <label className="stock-market">Stocks Market</label>
-        {filteredStockData.map(({ stockSymbol, price }) => (
-          <Stock
-            key={stockSymbol}
-            className="stock-instance"
-            stockSymbol={stockSymbol}
-            price={price}
-          />
+
+        {filteredStockData.map(stocks => (
+          <Stock key={stocks.stockSymbol} className="stock-instance" {...stocks} />
         ))}
-      </StocksList>
-    </HomeContainer>
+      </div>
+
+
+    </div>
   );
 }
 
-Stock.propTypes = {
-  stockSymbol: PropTypes.string.isRequired,
-  price: PropTypes.string.isRequired,
-};
+
 
 export default Home;
