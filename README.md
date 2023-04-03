@@ -23,3 +23,6 @@ Pushes / Merges to main will be
  - Automatically tested (only transaction server for now, but can be added to if we add other tests)
  - Automatically built
  - Automatically pushed to dockerhub (for use later in a deployment)
+
+ ## Deploy System
+ All you need to do to deploy the system is run `docker-compose up`. This should create the required containers. The transaction servers will then be reachable on port 5001. 

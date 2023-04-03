@@ -1,5 +1,7 @@
 import { ObjectId } from "mongodb";
-
+/**
+ * Log Types
+ */
 export interface LogMongo {
     _id: ObjectId;
     log_id: string;
