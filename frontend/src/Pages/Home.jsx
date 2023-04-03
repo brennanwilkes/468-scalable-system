@@ -1,23 +1,39 @@
-import React, { useEffect, useState } from "react";
-import styled, { createGlobalStyle } from "styled-components";
+import React, { useState } from "react";
+import styled from "styled-components";
 import { FaHistory, FaUserAlt, FaChartLine } from "react-icons/fa";
 import "./Home.css";
 import Stock from "./Stock";
 import Navbar from "../Components/Navbar";
 import TextField from "@mui/material/TextField";
+import PropTypes from 'prop-types';
 
+const HomeContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
 
-function App() {
+const SearchContainer = styled.div`
+  display: flex;
+  margin: 1rem;
+`;
+
+const StocksList = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+function Home() {
+  const [searchQuery, setSearchQuery] = useState("");
   const stockData = [
     {
       stockSymbol: "ABC",
       price: "$1.52"
-
     },
     {
       stockSymbol: "XZF",
       price: "$2.50"
-
     },
     {
       stockSymbol: "JEM",
@@ -29,39 +45,53 @@ function App() {
     }
   ];
 
+  const filteredStockData = stockData.filter(stock => {
+    return stock.stockSymbol.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const handleSearch = (event) => {
+    setSearchQuery(event.target.value);
+  };
 
   return (
-    <div className="home">
+    <HomeContainer>
       <Navbar />
-
-    <div className="search-container">
-    <TextField className="search" placeholder="Search Stocks" sx={{
-                    'width': '80%',
-                    'flexDirection' : 'column',
-                    'alignItems' : 'stretch',
-                    'display' : 'flex',
-                    'marginLeft': '1rem',
-                    'marginRight' : '1rem',                    
-                    'marginTop': '1rem',
-                    'marginBottom' : '1rem',
-                    "& .MuiInputBase-root": {
-                        "borderRadius": "50px",
-                    }
-                }} />
-      </div>
-      <div className="stocks-list">
-
-      <label className="stock-market">Stocks Market</label>
-
-      {stockData.map(stocks => (
-        <Stock key={stocks.stockSymbol} className="stock-instance" {...stocks} />
-      ))}
-      </div>
-
-
-    </div>
-
+      <SearchContainer>
+        <TextField
+          className="search"
+          placeholder="Search Stocks"
+          value={searchQuery}
+          onChange={handleSearch}
+          sx={{
+            'width': '80%',
+            'flexDirection': 'column',
+            'alignItems': 'stretch',
+            'display': 'flex',
+            "& .MuiInputBase-root": {
+              "borderRadius": "50px",
+            }
+          }}
+          key="search-input"
+        />
+      </SearchContainer>
+      <StocksList>
+        <label className="stock-market">Stocks Market</label>
+        {filteredStockData.map(({ stockSymbol, price }) => (
+          <Stock
+            key={stockSymbol}
+            className="stock-instance"
+            stockSymbol={stockSymbol}
+            price={price}
+          />
+        ))}
+      </StocksList>
+    </HomeContainer>
   );
 }
 
-export default App;
+Stock.propTypes = {
+  stockSymbol: PropTypes.string.isRequired,
+  price: PropTypes.string.isRequired,
+};
+
+export default Home;
