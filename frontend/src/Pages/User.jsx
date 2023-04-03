@@ -1,4 +1,4 @@
-import Navbar from "./Components/Navbar";
+import Navbar from "../Components/Navbar";
 
 function App(){
 // Create a Title component that'll render an <h1> tag with some styles
