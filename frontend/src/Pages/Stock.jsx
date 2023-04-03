@@ -1,10 +1,21 @@
 import * as React from "react";
 import "./Stock.css";
 import Button from "@mui/material/Button";
-
+import {createSearchParams, useNavigate} from 'react-router-dom';
 
 
 const App = (props) => {
+    const navigate = useNavigate();
+
+    function navigateBuy(id){
+        navigate({
+            pathname:'/Buy',
+            search: createSearchParams({
+                id: props.stockSymbol
+            }).toString()});
+    };
+
+
     return (
         <div className="stock">
             <div className="rectangle">
@@ -22,7 +33,7 @@ const App = (props) => {
                             color: "#d7ecf5",
                           }
                     }} />
-                <Button size="medium" variant= "contained" children= "Buy" sx={{
+                <Button onClick={()=>navigateBuy(props.stockSymbol)} size="medium" variant= "contained" children= "Buy" sx={{
                         'borderRadius': '50px',
                         'alignSelf' : 'flex-start',
                         'backgroundColor': '#397598',
