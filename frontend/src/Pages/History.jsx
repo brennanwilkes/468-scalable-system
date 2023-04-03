@@ -1,16 +1,64 @@
+import React, { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
+import Transaction from "./Transaction";
+import TextField from "@mui/material/TextField";
+import "./History.css"
 
 function App(){
-// Create a Title component that'll render an <h1> tag with some styles
+  const transactionHistory = [
+    {
+      stockSymbol: "ABC",
+      price: "$1.52",
+      type: "Buy",
+    },
+    {
+      stockSymbol: "XZF",
+      price: "$2.50",
+      type: "Buy",
+    },
+    {
+      stockSymbol: "JEM",
+      price: "$4.50",
+      type: "Sell"
+    },
+    {
+      stockSymbol: "MAO",
+      price: "$0.50",
+      type: "Sell",
 
-// Use Title and Wrapper like any other React component – except they're styled!
+    }
+  ];
 return(
 
-  <div> 
-    Transaction History
-   <Navbar/>
+  <div className="history">
+  <Navbar />
 
+<div className="search-container">
+<TextField className="search" placeholder="Search History" sx={{
+                'width': '80%',
+                'flexDirection' : 'column',
+                'alignItems' : 'stretch',
+                'display' : 'flex',
+                'marginLeft': '1rem',
+                'marginRight' : '1rem',                    
+                'marginTop': '1rem',
+                'marginBottom' : '1rem',
+                "& .MuiInputBase-root": {
+                    "borderRadius": "50px",
+                }
+            }} />
   </div>
+  <div className="transaction-list">
+
+  <label className="trans-history">Transaction History</label>
+
+  {transactionHistory.map(transaction => (
+    <Transaction key={transaction.stockSymbol} className="transaction-instance" {...transaction} />
+  ))}
+  </div>
+
+
+</div>
 );
 }
 
