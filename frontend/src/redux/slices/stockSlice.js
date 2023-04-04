@@ -31,6 +31,8 @@ export const selectStocks = (state) => {
 }
 
 export const selectStock = (state, stockSymbol) => {
+  console.log(state)
+  console.log(stockSymbol)
     return state.stockSlice.stocks.find((stock) => stock.stockSymbol === stockSymbol)
 }
 

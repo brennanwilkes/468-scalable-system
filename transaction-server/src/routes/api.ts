@@ -55,6 +55,70 @@ apiRouter.get('/STOCKS', async (req: Request, res: Response): Promise<void> => {
   res.json({response: 'Stocks Received', data: returnData});
 });
 
+apiRouter.post('/LOGIN', async (req: Request, res: Response): Promise<void> => {
+  const data: {userId: string, password: string} = req.body;
+  if(data.userId == null || data.password == null) {
+    res.status(500).json({error: 'Invalid request body'});
+    return;
+  }
+
+  const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
+  if(user == null) {
+    res.status(500).json({error: 'User does not exist'});
+    return;
+  }
+  const credentials: CredentialMongo = (await client.db('Transaction-Server').collection('Credentials').findOne({username: data.userId})) as any;
+  if(credentials == null) {
+    res.status(500).json({error: 'User does not exist'});
+    return;
+  }
+
+  if(credentials.hash_password !== data.password) {
+    res.status(500).json({error: 'Invalid password'});
+    return;
+  }
+
+  res.status(200).json({response: 'User logged in'});
+})
+
+apiRouter.post('/CREATE_ACCOUNT', async (req: Request, res: Response): Promise<void> => {
+  const data: {userId: string, password: string} = req.body;
+  if(data.userId == null || data.password == null) {
+    res.status(500).json({error: 'Invalid request body'});
+    return;
+  };
+
+  const user: UserMongo = (await client.db('Transaction-Server').collection('Users').findOne({username: data.userId})) as any;
+  if(user == null) {
+    //User missing, create one
+    console.log('Inserting User');
+    const newCredential: Partial<CredentialMongo> = {
+      username: data.userId,
+      hash_password: data.password,
+      created: Date.now(),
+      updated: Date.now(),
+    }
+
+    const credentialResult = await client.db("Transaction-Server").collection('Credentials').insertOne(newCredential);
+
+    const newUser: Partial<UserMongo> = {
+      username: data.userId,
+      account_balance: 0,
+      stocks_owned: [],
+      account_balance_reserves: [],
+      stocks_owned_reserves: [],
+      created: Date.now(),
+      updated: Date.now(),
+      credential_id: credentialResult.insertedId.toString(),
+    }
+    await client.db("Transaction-Server").collection('Users').insertOne(newUser);
+    res.status(200).json({response: 'User Created'});
+  } else {
+    res.status(500).json({error: 'User already exists'});
+    return;
+  }
+})
+
 //Commands in order of provided list https://www.ece.uvic.ca/~seng462/ProjectWebSite/Commands.html
 
 /**

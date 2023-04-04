@@ -9,16 +9,24 @@ import { selectStocks, setOneStock } from "../redux/slices/stockSlice";
 import { setAllStocks } from "../redux/slices/stockSlice";
 import { store } from "../redux/store";
 import { useSelector } from "react-redux";
+import { selectUserData } from "../redux/slices/userSlice";
 
 
 function Home() {
+  const userData = useSelector(selectUserData);
+  if(userData.isLoggedIn === false) {
+    window.location.href = "/Login";
+    return(<div></div>);
+  }
+
   const [searchQuery, setSearchQuery] = useState("");
   const [stockToQuote, setStockToQuote] = useState("");
+
   const stockData = useSelector(selectStocks);
   const [skipGetStocks, setSkipGetStocks] = useState(stockData.length > 0 ? true : false);
 
-  const {data: queryStockData, error: stockError, isLoading: stockIsLoading} = useGetStocksQuery('testUser', {skip: skipGetStocks});
-  const {data: quoteStockData, error: quoteError, isLoading: quoteIsLoading, refetch: fetchQuote } = useGetQuoteQuery('testUser', stockToQuote, {enabled: false});
+  const {data: queryStockData, error: stockError, isLoading: stockIsLoading} = useGetStocksQuery(userData.userName, {skip: skipGetStocks});
+  const {data: quoteStockData, error: quoteError, isLoading: quoteIsLoading, } = useGetQuoteQuery({userId: userData.userName, ticker: stockToQuote});
 
   useEffect(() => {
     if (queryStockData) {
@@ -70,8 +78,6 @@ function Home() {
         {!stockIsLoading && !stockError && filteredStockData.map(stocks => (
           <Stock key={stocks.stockSymbol} className="stock-instance" quoteClick={(stockSymbol) => {
             setStockToQuote(stockSymbol);
-            console.log('quoteClick: ', stockSymbol)
-            fetchQuote();
           }
           } {...stocks}  />
         ))}
