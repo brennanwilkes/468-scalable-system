@@ -1,8 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Routes, Route, BrowserRouter } from "react-router-dom"
+import { Provider } from 'react-redux'
+import {store} from './redux/store'
 import Home from './Pages/Home'
-import MyStocks from './Pages/MyStocks'
+import MyStocks from './Pages/Stock'
 import History from './Pages/History'
 import Buy from './Pages/Buy'
 import Login from './Pages/Login'
@@ -18,7 +20,9 @@ const Router = () => (
 )
 
 ReactDOM.createRoot(document.getElementById('root')).render(
+	<Provider store={store}>
   <BrowserRouter>
     <Router />
-  </BrowserRouter>,
+  </BrowserRouter>
+  </Provider>
 )

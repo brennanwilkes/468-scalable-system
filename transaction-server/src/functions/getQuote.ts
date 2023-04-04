@@ -13,14 +13,15 @@ require('dotenv').config()
 export async function getQuote(stockSymbol: string, userId: string, transactionNumber: number, redisClient: any, mongoClient: MongoClient, optional?: {byPassRedis?: boolean, skipQuoteLog?: boolean}): Promise<{price: number, cryptoKey: string}> {
     // Allows the quote server to be bypassed for testing purposes
     if(process.env.DISABLE_QUOTE_SOCKET == 'true') {
-        return {price: 1, cryptoKey: `test-uuid: ${uuidv4()}`};
+        return {price: parseFloat((Math.random() * 5).toFixed(2)), cryptoKey: `test-uuid: ${uuidv4()}`};
     }
 
     // Provides the option to bypass the redis cache
     if(!optional?.byPassRedis) {
         const result: {price: number, cryptoKey: string} = JSON.parse(await redisClient.get(stockSymbol));
         if(result) {
-            const logCacheQuote: Partial<LogSystemEvent> = {
+            if(!optional?.skipQuoteLog) {
+                const logCacheQuote: Partial<LogSystemEvent> = {
                 log_id: uuidv4(),
                 server: os.hostname(),
                 transactionNumber: transactionNumber,
@@ -30,9 +31,10 @@ export async function getQuote(stockSymbol: string, userId: string, transactionN
                 userId: userId,
                 stockSymbol: stockSymbol,
                 funds: result.price,
-            }
+                }
 
-            await mongoClient.db("Transaction-Server").collection('Logs').insertOne(logCacheQuote);
+                await mongoClient.db("Transaction-Server").collection('Logs').insertOne(logCacheQuote);
+            }
             return result;
         }
     }

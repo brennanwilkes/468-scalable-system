@@ -1,35 +1,50 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaHistory, FaUserAlt, FaChartLine } from "react-icons/fa";
 import "./Home.css";
 import Stock from "./Stock";
 import Navbar from "../Components/Navbar";
 import TextField from "@mui/material/TextField";
+import { useGetQuoteQuery, useGetStocksQuery } from "../rtkQuery/api";
+import { selectStocks, setOneStock } from "../redux/slices/stockSlice";
+import { setAllStocks } from "../redux/slices/stockSlice";
+import { store } from "../redux/store";
+import { useSelector } from "react-redux";
+import { selectUserData } from "../redux/slices/userSlice";
 
 
 function Home() {
+  const userData = useSelector(selectUserData);
+  if(userData.isLoggedIn === false) {
+    window.location.href = "/Login";
+    return(<div></div>);
+  }
+
   const [searchQuery, setSearchQuery] = useState("");
-  const stockData = [
-    {
-      stockSymbol: "ABC",
-      price: "$1.52"
-    },
-    {
-      stockSymbol: "XZF",
-      price: "$2.50"
-    },
-    {
-      stockSymbol: "JEM",
-      price: "$4.50"
-    },
-    {
-      stockSymbol: "MAO",
-      price: "$0.50"
+  const [stockToQuote, setStockToQuote] = useState("");
+
+  const stockData = useSelector(selectStocks);
+  const [skipGetStocks, setSkipGetStocks] = useState(stockData.length > 0 ? true : false);
+
+  const {data: queryStockData, error: stockError, isLoading: stockIsLoading} = useGetStocksQuery(userData.userName, {skip: skipGetStocks});
+  const {data: quoteStockData, error: quoteError, isLoading: quoteIsLoading, } = useGetQuoteQuery({userId: userData.userName, ticker: stockToQuote});
+
+  useEffect(() => {
+    if (queryStockData) {
+      const stocks = [...queryStockData.data];
+      store.dispatch(setAllStocks(stocks.sort((a, b) => a.stockSymbol.localeCompare(b.stockSymbol))));
     }
-  ];
+  }, [queryStockData])
+
+  useEffect(() => {
+    if(quoteStockData) {
+      store.dispatch(setOneStock({stockSymbol: stockToQuote, amount: quoteStockData.price}));
+    }
+  }, [quoteStockData])
 
   const filteredStockData = stockData.filter(stock => {
     return stock.stockSymbol.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
 
   const handleSearch = (event) => {
     setSearchQuery(event.target.value);
@@ -60,9 +75,18 @@ function Home() {
 
         <label className="stock-market">Stocks Market</label>
 
-        {filteredStockData.map(stocks => (
-          <Stock key={stocks.stockSymbol} className="stock-instance" {...stocks} />
+        {!stockIsLoading && !stockError && filteredStockData.map(stocks => (
+          <Stock key={stocks.stockSymbol} className="stock-instance" quoteClick={(stockSymbol) => {
+            setStockToQuote(stockSymbol);
+          }
+          } {...stocks}  />
         ))}
+        {
+          stockIsLoading && <div>Loading...</div>
+        }
+        {
+          stockError && <div>Error: {stockError.error}</div>
+        }
       </div>
 
 
