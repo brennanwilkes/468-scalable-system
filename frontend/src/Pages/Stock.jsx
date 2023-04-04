@@ -20,8 +20,8 @@ const App = (props) => {
         <div className="stock">
             <div className="rectangle">
                 <span className="stockSymbol">{props.stockSymbol}</span>
-                <span className="price">{props.price}</span>
-                <Button size="medium" variant= "contained" children= "Quote" sx={{
+                <span className="price">{props.amount}</span>
+                <Button size="medium" variant= "contained" children= "Quote" onClick={() => props.quoteClick(props.stockSymbol)}sx={{
                         'borderRadius': '50px',
                         'alignSelf' : 'flex-start',
                         'backgroundColor': '#397598',
