@@ -5,13 +5,14 @@ import Home from './Pages/Home'
 import MyStocks from './Pages/MyStocks'
 import History from './Pages/History'
 import Buy from './Pages/Buy'
-
+import Login from './Pages/Login'
 const Router = () => (
 	<Routes>
 		<Route path={"/"} index element={<Home />} />
 		<Route path={"/MyStocks"} index element={<MyStocks />} />
 		<Route path={"/History"} index element={<History />} /> 
 		<Route path={"/Buy"} index element={<Buy />} /> 
+		<Route path={"/Login"} index element={<Login />} /> 
 
 	</Routes>
 )
