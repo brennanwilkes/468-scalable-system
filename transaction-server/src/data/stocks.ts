@@ -1,0 +1,1 @@
+export const stocks = ['QJR', 'DMW', 'FOE', 'GJP', 'TRH', 'XIL', 'MOP', 'SVF', 'LNB', 'CZY', 'KTA', 'JIR', 'EWY', 'XWV', 'NPL', 'BRM', 'AUH', 'VZL', 'SDC', 'LGD', 'YXN', 'QOG', 'TKN', 'IWP', 'HCF', 'EXB', 'ZDU', 'YMQ', 'PAK', 'JVB']
