@@ -26,7 +26,7 @@ function Home() {
   const [skipGetStocks, setSkipGetStocks] = useState(stockData.length > 0 ? true : false);
 
   const {data: queryStockData, error: stockError, isLoading: stockIsLoading} = useGetStocksQuery(userData.userName, {skip: skipGetStocks});
-  const {data: quoteStockData, error: quoteError, isLoading: quoteIsLoading, } = useGetQuoteQuery({userId: userData.userName, ticker: stockToQuote});
+  const {data: quoteStockData, error: quoteError, isLoading: quoteIsLoading, refetch: quoteRefetch } = useGetQuoteQuery({userId: userData.userName, ticker: stockToQuote});
 
   useEffect(() => {
     if (queryStockData) {
@@ -77,7 +77,14 @@ function Home() {
 
         {!stockIsLoading && !stockError && filteredStockData.map(stocks => (
           <Stock key={stocks.stockSymbol} className="stock-instance" quoteClick={(stockSymbol) => {
-            setStockToQuote(stockSymbol);
+            if(stockSymbol === stockToQuote) {
+              quoteRefetch();
+            } else {
+              setStockToQuote(stockSymbol);
+              setTimeout(() => {
+                quoteRefetch();
+              }, 100)
+            }
           }
           } {...stocks}  />
         ))}
