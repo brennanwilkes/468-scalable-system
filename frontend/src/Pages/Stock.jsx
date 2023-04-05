@@ -24,24 +24,24 @@ const App = (props) => {
                 <Button size="medium" variant= "contained" children= "Quote" onClick={() => props.quoteClick(props.stockSymbol)}sx={{
                         'borderRadius': '50px',
                         'alignSelf' : 'flex-start',
-                        'backgroundColor': '#397598',
+                        'backgroundColor': '#0F4ABF',
                         'color': '#d7ecf5',
                         'borderColor': '#397598',
                         'marginTop': '0.5rem',
                         ":hover": {
-                            bgcolor: "#578DAD",
+                            bgcolor: "#0E54DE",
                             color: "#d7ecf5",
                           }
                     }} />
                 <Button onClick={()=>navigateBuy(props.stockSymbol)} size="medium" variant= "contained" children= "Buy" sx={{
                         'borderRadius': '50px',
                         'alignSelf' : 'flex-start',
-                        'backgroundColor': '#397598',
+                        'backgroundColor': '#3B9D61',
                         'color': '#d7ecf5',
                         'borderColor': '#397598',
                         'marginTop': '0.5rem',
                         ":hover": {
-                            bgcolor: "#578DAD",
+                            bgcolor: "#60AE7E",
                             color: "#d7ecf5",
                           }
                     }} />
