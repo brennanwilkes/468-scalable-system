@@ -73,9 +73,11 @@ function App() {
     <div className="buy-page">
       <Navbar />
 
-      <div className="container">
-        <div className="buy-stock">Buy {searchparams.get("id")}</div>
+      <div className="sell-body">
+        <div className="sell-container">
+        <div className="buy-title">Buy {searchparams.get("id")}</div>
         <div className="current-price">Current Price: ${stockInfo.amount}/share</div>
+
         <Button size="medium" variant="contained" children="Get Updated Quote" onClick={() => {
           if(skip) {
             setSkip(false);
@@ -97,30 +99,27 @@ function App() {
                 color: "#d7ecf5",
               }
             }}/>
-        <div className="account-balance">Account Balance</div>
-        <div className="balance">${userData.amount}</div>
 
-        <div className="amount">Amount</div>
+      <div className="buy-content">
 
-        <div className="input-container">
-          <TextField value={value} onChange={handleChange} className="search" placeholder="Enter Amount in Dollars to Purchase" sx={{
-            'width': '80%',
-            'flexDirection': 'column',
-            'alignItems': 'stretch',
-            'display': 'flex',
-            'marginLeft': '1rem',
-            'marginRight': '1rem',
-            'marginTop': '1rem',
-            'marginBottom': '1rem',
-            "& .MuiInputBase-root": {
-              "borderRadius": "50px",
-            }
-          }} />
+        <div className="buy-account-title">Account Balance: ${userData.amount}</div>
+        <div className="buy-amount">Amount</div>
+
+        <TextField value={value} onChange={handleChange} className="search" variant="standard" placeholder="Enter Amount in Dollars to Purcjase" sx={{
+                'width': '80%',   
+                'alignSelf': 'center',
+                'marginTop': '1rem',
+                'marginBottom': '1rem',
+                "& .MuiInputBase-root": {
+                  "borderRadius": "20px",
+                },
+                
+              }} />
         </div>
 
         
           {!pendingBuy && (
-            <div className="buttons">
+            <div className="buy-buttons">
             <Button size="medium" variant="contained" children="Submit" onClick={
               () => {
                 if(value !== "") {
@@ -128,7 +127,6 @@ function App() {
                 } 
               }}sx={{
               'borderRadius': '50px',
-              'alignSelf': 'flex-start',
               'backgroundColor': '#3B9D61',
               'color': '#d7ecf5',
               'borderColor': '#397598',
@@ -140,7 +138,6 @@ function App() {
             }} />
             <Button size="medium" variant="contained" children="Cancel" onClick={navigateHome} sx={{
               'borderRadius': '50px',
-              'alignSelf': 'flex-start',
               'backgroundColor': '#A61110',
               'color': '#d7ecf5',
               'borderColor': '#397598',
@@ -154,14 +151,13 @@ function App() {
           )}
 
           {pendingBuy && (
-            <div className="buttons">
+            <div className="buy-buttons">
             <Button size="medium" variant="contained" children="Confirm" onClick={
               () => {
                   commitBuy({userId: userData.userName});
               }
             }sx={{
               'borderRadius': '50px',
-              'alignSelf': 'flex-start',
               'backgroundColor': '#3B9D61',
               'color': '#d7ecf5',
               'borderColor': '#397598',
@@ -175,7 +171,6 @@ function App() {
               cancelBuy({userId: userData.userName});
             }} sx={{
               'borderRadius': '50px',
-              'alignSelf': 'flex-start',
               'backgroundColor': '#A61110',
               'color': '#d7ecf5',
               'borderColor': '#397598',
@@ -187,9 +182,8 @@ function App() {
             }} />
             </div>
           )}
-          
+          </div>
 
-        
       </div>
 
     </div>

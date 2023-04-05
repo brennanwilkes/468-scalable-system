@@ -58,6 +58,7 @@
 }
 
 .sell-content {
+  margin-top: 1rem;
   margin-left: 3rem;
 }
 
@@ -66,6 +67,15 @@
   font-size: 1.5rem;
   font-weight: 600;
   text-align: left;
+  /* color: #ffffff; */
+}
+
+.stock-account-title{
+  font-family: Roboto, Arial;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: left;
+  margin-top:1rem;
   /* color: #ffffff; */
 }
 

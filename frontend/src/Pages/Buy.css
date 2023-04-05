@@ -11,61 +11,151 @@
   min-height: 100vh;
 }
 
-.input-container{
-  position:relative;
-  display:flex;
-  flex-flow:column;
-  align-items: center;
-  max-width: 700px;
-  width: 90%;
-  margin: 0 auto;
-
-}
-
-.buy-stock{
+.current-price{
+  margin-left: 3rem;
   font-family: Roboto, Arial;
-  font-size: 1.875rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  margin-left: 1rem;
-  /* color: #ffffff; */
-}
 
-.container{
-  display:flex;
+}
+.buy-body {
+  color: #ffffff;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  background-color: #E1E5ED;
-  max-width: 1100px;
+  align-items: center;
+  /* padding-top: 9px; */
+  font-family: Roboto, Arial;
+  font-size: 1.563rem;
+  font-weight: 400;
   margin: 0 auto;
-  min-height: 90vh;
-
+  display: flex;
+  position: absolute;
 }
-.account-balance{
+
+.buy-container {
+  color: #1D2433;
+  min-width: 0px;
+  max-width: 480px;
+  width:100%;
+  background-color: #E1E5ED;
+  /* border-top: 4px solid #d7ecf5; */
+  border-radius: 20px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  box-sizing: border-box;
+  margin:0px auto 20px auto;
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+  font-size: 1rem;
+  line-height: 23px;
+  display: flex;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.2);
+}
+
+.buy-title {
+  align-self: center;
+  /* margin-top: 2rem; */
+  margin-bottom: 2rem;
+  font-size: 2rem;
+  font-weight: 750;
+}
+
+.buy-content {
+  margin-top:1rem;
+  margin-left: 3rem;
+}
+
+.buy-account-title{
   font-family: Roboto, Arial;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  margin-left: 1rem;
-  margin-top: 1rem;
-
+  text-align: left;
   /* color: #ffffff; */
 }
 
-.balance{
+.buy-account-balance{
   font-family: Roboto, Arial;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 500;
-  margin-left: 1rem;
   margin-top: 1rem;
 
   /* color: #ffffff; */
 }
 
-.amount{
+.buy-amount{
   font-family: Roboto, Arial;
   font-size: 1.4rem;
   font-weight: 600;
-  margin-left: 1rem;
   margin-top: 1rem;
   /* color: #ffffff; */
+}
+
+.buy-buttons{
+  align-items: center;
+  justify-content: center;
+  display:flex;
+}
+
+.group-15-instance {
+  width: 55%;
+
+}
+
+.flex-container {
+  color: #ffffff;
+  width: 55%;
+  flex-direction: column;
+  flex-basis: 8%;
+  justify-content: space-between;
+  align-items: stretch;
+  margin-left: 4px;
+  display: flex;
+}
+
+
+.password {
+  margin-bottom: 1px;
+}
+
+.login-btn {
+  padding: 8px 20px;
+  border-radius: 2px;
+  outline: none;
+  border: none;
+  cursor: pointer;
+}
+
+.login-btn--outline {
+  background-color: transparent;
+  color: #1D2433;
+  padding: 8px 20px;
+  border: 1px solid #1D2433;
+  transition: all 0.3s ease-out;
+}
+
+.buy-input{
+  align-self: stretch;
+  /* position:relative;
+  display:flex;
+  flex-flow:column; */
+  /* align-items: center; */
+  /* max-width: 700px;
+  width: 90%;
+  margin: 0 auto; */
+
+}
+.login-btn--medium {
+  padding: 8px 20px;
+  font-size: 18px;
+}
+
+.login-btn--medium:hover {
+  transition: all 0.3s ease-out;
+  background: #7381a0;
+  color: #1D2433;
+  transition: 250ms;
 }

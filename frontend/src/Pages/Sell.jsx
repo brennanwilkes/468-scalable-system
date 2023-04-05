@@ -86,7 +86,8 @@ const App = () => {
       <div className="sell-body">
         <div className="sell-container">
           <span className="sell-title" >Sell {searchparams.get("id")}</span>
-          <div className="current-price" style={{textAlign: 'center'}}>Current Price: ${stockInfo.amount}/share</div>
+          <div className="current-price">Current Price: ${stockInfo.amount}/share</div>
+
         <Button size="medium" variant="contained" children="Get Updated Quote" onClick={() => {
           if(skip) {
             setSkip(false);
@@ -109,11 +110,10 @@ const App = () => {
               }
             }}/>
           <div className="sell-content">
-            <div className="sell-account-title">Account Balance</div>
-            <div className="sell-account-balance">${userData.amount}</div>
+            <div className="sell-account-title">Account Balance: ${userData.amount}</div>
+
             <div></div>
-            <div className="sell-account-title">Amount of Stock in Account</div>
-            <div className="sell-account-balance">{ownedStockInfo.amount} Shares</div>
+            <div className="sell-account-title">Stock in Account: {ownedStockInfo.amount} Shares</div>
 
             <div className="sell-amount">Amount</div>
             </div>
