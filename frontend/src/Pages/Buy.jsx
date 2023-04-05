@@ -5,7 +5,7 @@ import Navbar from "../Components/Navbar";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { useSelector } from "react-redux";
-import { selectPendingBuy, selectUserData, setPendingBuy } from "../redux/slices/userSlice";
+import { selectPendingBuy, selectUserData, setPendingBuy, setTransactionHistory } from "../redux/slices/userSlice";
 import { selectStock, setOneStock } from "../redux/slices/stockSlice";
 import { store } from "../redux/store";
 import { useGetQuoteQuery, useBuyMutation, useCommitBuyMutation, useCancelBuyMutation , useGetDisplaySummaryQuery} from "../rtkQuery/api";
@@ -56,6 +56,7 @@ function App() {
     if(summaryData) {
         store.dispatch(setAmount(summaryData.data.funds));
         store.dispatch(setAllOwnedStocks(summaryData.data.stocksOwned));
+        store.dispatch(setTransactionHistory(summaryData.data.transactionHistory));
     }
   }, [summaryData])
 

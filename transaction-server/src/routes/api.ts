@@ -397,9 +397,8 @@ apiRouter.post('/SELL', async (req: Request, res: Response): Promise<void> => {
   }
 
   const getQuoteResult = await getQuote(data.stockSymbol, data.userId, transactionNumber, redisClient, client);
-  const dollarAmountCurrentlyHeld = getQuoteResult.price * stock.amount;
 
-  if(dollarAmountCurrentlyHeld < data.amount) {
+  if(stock.amount < data.amount) {
     await logError(client, transactionNumber, 'SELL', {userId: data.userId, errorMessage: 'Requesting to sell more stock than you have in dollar amounts'})
     res.status(500).json({ response: 'Requesting to sell more stock than you have in dollar amounts'});
     return;
@@ -453,13 +452,11 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
     res.status(500).json({ response: 'Pending SELL command too old. Please try again'});
     return;
   }
-
-  const amountOfStock = user.pending_sell.amount_to_sell / user.pending_sell.stock_price;
   
 
   let ownedStockIndex = 0;
   const ownedStock = user.stocks_owned.find((value, index) => {
-    if(value.stock_name == user.pending_buy?.stock_name) {
+    if(value.stock_name == user.pending_sell?.stock_name) {
       ownedStockIndex = index;
       return value;
     }
@@ -475,10 +472,10 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
   }
 
   const amountToSell = user.pending_sell.amount_to_sell;
-  const stockAmount = ownedStock.amount - amountOfStock;
+  const stockAmount = ownedStock.amount - user.pending_sell.amount_to_sell ;
   const stockName = user.pending_sell.stock_name;
   user.stocks_owned[ownedStockIndex] = {stock_name: user.pending_sell.stock_name, amount: stockAmount};
-  
+  const amountOfMoneyGained =  amountToSell * user.pending_sell.stock_price;
   
  
   
@@ -507,14 +504,12 @@ apiRouter.post('/COMMIT_SELL', async (req: Request, res: Response): Promise<void
     funds: user.pending_sell.amount_to_sell,
   }
 
-  const amount = user.pending_sell.amount_to_sell;
-
   await client.db("Transaction-Server").collection('Logs').insertOne(systemLog);
   
-  user.pending_buy = undefined;
+  user.pending_sell = undefined;
   user.updated = Date.now();
   await client.db("Transaction-Server").collection('Users').updateOne({username: user.username}, {$set: user});
-  await editAccount(client, data.userId, 'add', amount, transactionNumber);
+  await editAccount(client, data.userId, 'add', amountOfMoneyGained, transactionNumber);
   res.status(200).json({ response: `Stock sold. You sold ${stockAmount} shares of ${stockName} stock for a total of \$${amountToSell}`});
 });
 
@@ -950,7 +945,7 @@ apiRouter.get('/DISPLAY_SUMMARY',  async (req: Request, res: Response): Promise<
     buyTriggers: buyTriggers,
     sellTriggers: sellTriggers,
   };
-  const transactionPointer = client.db("Transaction-Server").collection('Transactions').find({ userId: data.userId}, {sort: {timestamp: -1}});
+  const transactionPointer = client.db("Transaction-Server").collection('Transactions').find({ username: data.userId}, {sort: {timestamp: -1}});
   await transactionPointer.forEach((transaction) => {
     const transactionType : TransactionMongo = transaction as TransactionMongo;
     returnValue.transactionHistory.push({

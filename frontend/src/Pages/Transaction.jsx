@@ -6,9 +6,9 @@ const App = (props) => {
         <div className="transaction">
             <div className="rectangle-2">
                 <span className="stockSymbol">{props.stockSymbol}</span>
-                <span className="price">{props.price}</span>
-                <span className="type">{props.type}</span>
-                <span className="timestamp">{props.timestamp}</span>
+                <span className="type">{props.action}</span>
+                <span className="price">${props.amount}</span>
+                <span className="timestamp">{(new Date(props.timestamp)).toLocaleString()}</span>
               
             </div>
         </div>

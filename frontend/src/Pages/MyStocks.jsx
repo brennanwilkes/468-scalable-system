@@ -4,31 +4,18 @@ import "./Home.css";
 import OwnedStock from "./OwnedStock";
 import Navbar from "../Components/Navbar";
 import TextField from "@mui/material/TextField";
+import { useSelector } from "react-redux";
+import { selectOwnedStocks, selectUserData } from "../redux/slices/userSlice";
+
 
 
 function MyStocks() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const stockData = [
-    {
-      stockSymbol: "ABC",
-      price: "$1.52"
-    },
-    {
-      stockSymbol: "XZF",
-      price: "$2.50"
-    },
-    {
-      stockSymbol: "JEM",
-      price: "$4.50"
-    },
-    {
-      stockSymbol: "MAO",
-      price: "$0.50"
-    }
-  ];
+  const userData = useSelector(selectUserData);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const stockData = useSelector(selectOwnedStocks);
   const filteredStockData = stockData.filter(stock => {
-    return stock.stockSymbol.toLowerCase().includes(searchQuery.toLowerCase());
+    return stock.stock_name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const handleSearch = (event) => {
@@ -58,11 +45,14 @@ function MyStocks() {
       </div>
       <div className="stocks-list">
 
-        <label className="stock-market">Stocks Market</label>
+        <label className="stock-market">Stock Market</label>
 
         {filteredStockData.map(stocks => (
-          <OwnedStock key={stocks.stockSymbol} className="stock-instance" {...stocks} />
+          <OwnedStock key={stocks.stock_name} className="stock-instance" {...stocks} />
         ))}
+        {
+          filteredStockData.length === 0 && <div>No stocks found</div>
+        }
       </div>
 
 

@@ -38,6 +38,18 @@ export const transactionServerApi = createApi({
     cancelBuy: builder.mutation({
       query: (body) => ({ url: "CANCEL_BUY", method: "POST", body: body }),
     }),
+
+    sell: builder.mutation({
+      query: (body) => ({ url: "SELL", method: "POST", body: body }),
+    }),
+
+    commitSell: builder.mutation({
+      query: (body) => ({ url: "COMMIT_SELL", method: "POST", body: body }),
+    }),
+
+    cancelSell: builder.mutation({
+      query: (body) => ({ url: "CANCEL_SELL", method: "POST", body: body }),
+    }),
   }),
 });
 
@@ -50,5 +62,8 @@ export const {
   useGetDisplaySummaryQuery,
   useBuyMutation,
   useCommitBuyMutation,
-    useCancelBuyMutation,
+  useCancelBuyMutation,
+  useSellMutation,
+  useCommitSellMutation,
+  useCancelSellMutation      
 } = transactionServerApi;

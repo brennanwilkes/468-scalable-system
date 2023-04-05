@@ -11,7 +11,7 @@ const App = (props) => {
     navigate({
       pathname: '/Buy',
       search: createSearchParams({
-        id: props.stockSymbol
+        id: props.stock_name
       }).toString()
     });
   };
@@ -20,7 +20,7 @@ const App = (props) => {
     navigate({
       pathname: '/Sell',
       search: createSearchParams({
-        id: props.stockSymbol
+        id: props.stock_name
       }).toString()
     });
   };
@@ -28,9 +28,9 @@ const App = (props) => {
   return (
     <div className="stock">
       <div className="rectangle">
-        <span className="stockSymbol">{props.stockSymbol}</span>
+        <span className="stockSymbol">{props.stock_name}</span>
         <span className="price">{props.amount}</span>
-        <Button size="medium" variant="contained" children="Quote" onClick={() => props.quoteClick(props.stockSymbol)} sx={{
+        {/* <Button size="medium" variant="contained" children="Quote" onClick={() => props.quoteClick(props.stock_name)} sx={{
           'borderRadius': '50px',
           'alignSelf': 'flex-start',
           'backgroundColor': '#0F4ABF',
@@ -41,8 +41,8 @@ const App = (props) => {
             bgcolor: "#0E54DE",
             color: "#d7ecf5",
           }
-        }} />
-        <Button onClick={() => navigateBuy(props.stockSymbol)} size="medium" variant="contained" children="Buy" sx={{
+        }} /> */}
+        <Button onClick={() => navigateBuy(props.stock_name)} size="medium" variant="contained" children="Buy" sx={{
           'borderRadius': '50px',
           'alignSelf': 'flex-start',
           'backgroundColor': '#3B9D61',
@@ -55,7 +55,7 @@ const App = (props) => {
           }
         }} />
 
-        <Button onClick={() => navigateSell(props.stockSymbol)} size="medium" variant="contained" children="Sell" sx={{
+        <Button onClick={() => navigateSell(props.stock_name)} size="medium" variant="contained" children="Sell" sx={{
           'borderRadius': '50px',
           'alignSelf': 'flex-start',
           'backgroundColor': '#A61110',

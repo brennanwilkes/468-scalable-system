@@ -2,32 +2,12 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
 import Transaction from "./Transaction";
 import TextField from "@mui/material/TextField";
+import { useSelector } from "react-redux";
+import { selectTransactions } from "../redux/slices/userSlice";
 import "./History.css"
 
 function App(){
-  const transactionHistory = [
-    {
-      stockSymbol: "ABC",
-      price: "$1.52",
-      type: "Buy",
-    },
-    {
-      stockSymbol: "XZF",
-      price: "$2.50",
-      type: "Buy",
-    },
-    {
-      stockSymbol: "JEM",
-      price: "$4.50",
-      type: "Sell"
-    },
-    {
-      stockSymbol: "MAO",
-      price: "$0.50",
-      type: "Sell",
-
-    }
-  ];
+  const transactionHistory = useSelector(selectTransactions)
 return(
 
   <div className="history">
@@ -53,7 +33,7 @@ return(
   <label className="trans-history">Transaction History</label>
 
   {transactionHistory.map(transaction => (
-    <Transaction key={transaction.stockSymbol} className="transaction-instance" {...transaction} />
+    <Transaction key={transaction.timestamp} className="transaction-instance" {...transaction} />
   ))}
   </div>
 

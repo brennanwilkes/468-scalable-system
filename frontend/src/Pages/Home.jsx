@@ -73,7 +73,7 @@ function Home() {
       </div>
       <div className="stocks-list">
 
-        <label className="stock-market">Stocks Market</label>
+        <label className="stock-market">Stock Market</label>
 
         {!stockIsLoading && !stockError && filteredStockData.map(stocks => (
           <Stock key={stocks.stockSymbol} className="stock-instance" quoteClick={(stockSymbol) => {

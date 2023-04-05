@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { useLoginMutation, useCreateAccountMutation, useAddMutation, useGetDisplaySummaryQuery } from "../rtkQuery/api";
 import { store } from "../redux/store";
-import { setUserName, setLoggedIn, setAmount, setAllOwnedStocks } from "../redux/slices/userSlice";
+import { setUserName, setLoggedIn, setAmount, setAllOwnedStocks, setTransactionHistory } from "../redux/slices/userSlice";
 // import API from "../api";
 
 const propsData = {
@@ -76,6 +76,7 @@ const App = () => {
     useEffect(() => {
         if(summaryData) {
             setLoginState(summaryData.data.funds, summaryData.data.stocksOwned);
+            store.dispatch(setTransactionHistory(summaryData.data.transactionHistory));
         }
     }, [summaryData])
 

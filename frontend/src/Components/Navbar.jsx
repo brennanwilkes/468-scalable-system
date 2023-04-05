@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { FaBars, FaTimes } from "react-icons/fa";
 import { Button } from './Button';
 import './Navbar.css';
+import { store } from '../redux/store';
+import { logOut } from '../redux/slices/userSlice';
 
 function Navbar() {
   const [click, setClick] = useState(false);
@@ -18,6 +20,11 @@ function Navbar() {
       setButton(true);
     }
   };
+
+  const signOut = () => {
+    store.dispatch(logOut)
+    window.location.href = "/Login"
+  }
 
   useEffect(() => {
     showButton();
@@ -58,17 +65,8 @@ function Navbar() {
                 History
               </Link>
             </li>
-            <li>
-              <Link
-                to='/Login'
-                className='nav-links-mobile'
-                onClick={closeMobileMenu}
-              >
-                Sign Out
-              </Link>
-            </li>
           </ul>
-          {button && <Button buttonStyle='btn--outline'>SIGN OUT</Button>}
+          {button && <Button buttonStyle='btn--outline' onClick={signOut}>SIGN OUT</Button>}
 
         </div>
       </nav>
