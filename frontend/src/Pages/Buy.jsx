@@ -105,7 +105,7 @@ function App() {
         <div className="buy-account-title">Account Balance: ${userData.amount}</div>
         <div className="buy-amount">Amount</div>
 
-        <TextField value={value} onChange={handleChange} className="search" variant="standard" placeholder="Enter Amount in Dollars to Purcjase" sx={{
+        <TextField value={value} onChange={handleChange} className="search" variant="standard" placeholder="Enter Amount in Dollars to Purchase" sx={{
                 'width': '80%',   
                 'alignSelf': 'center',
                 'marginTop': '1rem',
