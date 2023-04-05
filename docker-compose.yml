@@ -91,6 +91,54 @@ services:
     networks: 
       - databases
       - servers
+  # transaction-server-api-5:
+  #   container_name: transaction-server-api-5
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-6:
+  #   container_name: transaction-server-api-6
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-7:
+  #   container_name: transaction-server-api-7
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
+  # transaction-server-api-8:
+  #   container_name: transaction-server-api-8
+  #   image: transaction-server-api
+  #   build: ./transaction-server
+  #   env_file:
+  #   - .env
+  #   depends_on:
+  #     - mongo
+  #     - redis
+  #   networks: 
+  #     - databases
+  #     - servers
 volumes:
   redis:
     driver: local
