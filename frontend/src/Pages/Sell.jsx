@@ -113,7 +113,7 @@ const App = () => {
             <div className="sell-account-title">Account Balance: ${userData.amount}</div>
 
             <div></div>
-            <div className="sell-account-title">Stock in Account: {ownedStockInfo.amount} Shares</div>
+            <div className="sell-account-title">Stock in Account: {Math.round(ownedStockInfo.amount * 100) / 100} Shares</div>
 
             <div className="sell-amount">Amount</div>
             </div>

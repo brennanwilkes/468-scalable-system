@@ -8,13 +8,18 @@ import "./History.css"
 
 function App(){
   const transactionHistory = useSelector(selectTransactions)
+  const [search, setSearch] = useState("");
+
+  const transactionHistoryFiltered = transactionHistory.filter(transaction => {
+    return transaction.stockSymbol.toLowerCase().includes(search.toLowerCase());
+  });
 return(
 
   <div className="history">
   <Navbar />
 
 <div className="search-container">
-<TextField className="search" placeholder="Search History" sx={{
+<TextField className="search" placeholder="Search History" onChange={(event) => setSearch(event.target.value)} sx={{
                 'width': '80%',
                 'flexDirection' : 'column',
                 'alignItems' : 'stretch',
@@ -32,7 +37,7 @@ return(
 
   <label className="trans-history">Transaction History</label>
 
-  {transactionHistory.map(transaction => (
+  {transactionHistoryFiltered.map(transaction => (
     <Transaction key={transaction.timestamp} className="transaction-instance" {...transaction} />
   ))}
   </div>

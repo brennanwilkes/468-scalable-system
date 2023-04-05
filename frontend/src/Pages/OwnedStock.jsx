@@ -29,7 +29,7 @@ const App = (props) => {
     <div className="stock">
       <div className="rectangle">
         <span className="stockSymbol">{props.stock_name}</span>
-        <span className="price">{props.amount}</span>
+        <span className="price">{Math.round(props.amount * 100) / 100} Shares</span>
         {/* <Button size="medium" variant="contained" children="Quote" onClick={() => props.quoteClick(props.stock_name)} sx={{
           'borderRadius': '50px',
           'alignSelf': 'flex-start',
