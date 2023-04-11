@@ -18,9 +18,9 @@ export const options = {
     
           timeUnit: "1s",
             stages: [
-                { duration: "1m", target: 80 },
+                { duration: "1m", target: 90 },
 
-                { duration: "30m", target: 80 }, 
+                { duration: "30m", target: 90 }, 
 
                 { duration: "1m", target: 0 }, 
             ],

@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "stress": "k6 run --summary-export=export.json ./src/stress-test.js",
-    "spike": "k6 run --summary-export=export.json ./src/spike-test.js",
-    "soak" : "k6 run --summary-export=export.json ./src/soak-test.js"
+    "stress": "k6 run --out csv=data.csv ./src/stress-test.js",
+    "spike": "k6 run --out  csv=data.csv ./src/spike-test.js",
+    "soak" : "k6 run --out  csv=data.csv ./src/soak-test.js"
   },
   "author": "",
   "license": "ISC",
